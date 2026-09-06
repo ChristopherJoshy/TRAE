@@ -1,0 +1,67 @@
+{
+  "original.png": {
+    "sha256": "d7764f7751bf1abbbd1bb11a5087ed2a18b07875a777a8d32c7e86deb4805cfe",
+    "bytes": 4171,
+    "description": "SYNTHETIC TEST FIXTURE — exact original; one face-like region"
+  },
+  "recompressed.jpg": {
+    "sha256": "6de9177ea0f59329f16dad4628b86e03e6df2f4c95749f65bc8fcb2ede06b387",
+    "bytes": 3911,
+    "description": "SYNTHETIC TEST FIXTURE — JPEG recompressed derivative"
+  },
+  "resized.png": {
+    "sha256": "7fb533fcf3ec632a8b950fafec9f2f53f148e286d6e2f785411fcdff5d919eab",
+    "bytes": 2400,
+    "description": "SYNTHETIC TEST FIXTURE — resized derivative 128x128"
+  },
+  "cropped.png": {
+    "sha256": "abe0efda787977bb9d7fd455d3a272413a481690fca1291d2738a68227940e91",
+    "bytes": 3770,
+    "description": "SYNTHETIC TEST FIXTURE — cropped derivative (aspect changed)"
+  },
+  "text-overlay.png": {
+    "sha256": "3bfdddd532eafc39b0429927ce29273827767611202523070192a4b2c2883c29",
+    "bytes": 4196,
+    "description": "SYNTHETIC TEST FIXTURE — derivative with overlaid text bar"
+  },
+  "color-shifted.png": {
+    "sha256": "4f1f43b536eaa3fc0da28f770da171c90133949b067342192716ef48a253f6e2",
+    "bytes": 4761,
+    "description": "SYNTHETIC TEST FIXTURE — color-adjusted derivative"
+  },
+  "watermarked.png": {
+    "sha256": "7b489768c8dede2f652751370936a2f4cdd0048e9a42a0da9d7d7442b0a81223",
+    "bytes": 4194,
+    "description": "SYNTHETIC TEST FIXTURE — watermarked derivative"
+  },
+  "unrelated.png": {
+    "sha256": "4b76e5d39123046ee2df5a0eeed496d2180717da5ed0f80793433a9f5dd3f5b1",
+    "bytes": 49842,
+    "description": "SYNTHETIC TEST FIXTURE — unrelated image; no face expected"
+  },
+  "multiface.png": {
+    "sha256": "29c9b2b5d1683a3d77837bc024e64bbae639e1bf9e26c015ed8053bee448c3d1",
+    "bytes": 5675,
+    "description": "SYNTHETIC TEST FIXTURE — two face-like regions; ambiguity expected"
+  },
+  "noface.png": {
+    "sha256": "749e542ee46ed862c6eaf4aef13928c86a20c2e7ef26c85f377a5a88e908e826",
+    "bytes": 1947,
+    "description": "SYNTHETIC TEST FIXTURE — no face-like region expected"
+  },
+  "tiny.png": {
+    "sha256": "648a4b7f1031459e2d2b992e87f6dd8b2f7b36dd6ac68e5fdc16d774d912b04d",
+    "bytes": 287,
+    "description": "SYNTHETIC TEST FIXTURE — very small image; low-quality expected"
+  },
+  "corrupt.bin": {
+    "sha256": "dfade042f46c165f4eceecf78ad5c4696944df0d5f51f99277615e35bf101cbb",
+    "bytes": 12,
+    "description": "SYNTHETIC TEST FIXTURE — corrupt file; must fail validation"
+  },
+  "morphlike.png": {
+    "sha256": "360f39feea6ded51a5b6393a7669d68dbf0fae7fd3ff7727a6742260fd3dadf6",
+    "bytes": 3572,
+    "description": "SYNTHETIC TEST FIXTURE — suspicious asymmetric composite test fixture"
+  }
+}

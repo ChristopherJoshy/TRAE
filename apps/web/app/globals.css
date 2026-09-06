@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+:root {
+  --trace-bg: #101014;
+  --trace-panel: #17171d;
+  --trace-line: #2a2a33;
+  --trace-ink: #eceae4;
+  --trace-dim: #a3a099;
+  --trace-accent: #d8ff3e;
+  --trace-support: #57d977;
+  --trace-warn: #ffb224;
+  --trace-bad: #ff5d5d;
+}
+
+html, body {
+  background: var(--trace-bg);
+  color: var(--trace-ink);
+}
+
+body {
+  font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.trace-panel {
+  background: var(--trace-panel);
+  border: 1px solid var(--trace-line);
+}
+
+.trace-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

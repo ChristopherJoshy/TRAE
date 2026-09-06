@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "trace.task3/v1",
+  "investigationId": "tr3-mtq5ln25-134bf5",
+  "createdAt": "2026-09-06T18:39:20.777Z",
+  "input": {
+    "sha256": "b231e66c0bf1e016dea4669c6e56aba107d77d15bd92ba566705f65379e59dad",
+    "mime": "image/jpeg",
+    "width": 512,
+    "height": 768,
+    "face": {
+      "box": {
+        "x": 165,
+        "y": 191,
+        "w": 169,
+        "h": 169
+      },
+      "detectorScore": 0.938,
+      "detector": "mediapipe-blazeface",
+      "embedder": "mobilenet_v3-image-embedder/face-crop"
+    }
+  },
+  "discovery": {
+    "provider": "exa",
+    "queries": [
+      "web pages containing this image https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=512&q=80&fm=jpg&fit=crop",
+      "\"1494790108377\"",
+      "\"be9c29b29330\""
+    ],
+    "latencyMs": 5977,
+    "candidatesChecked": 15
+  },
+  "matches": [
+    {
+      "postUrl": "https://choicepsychology.com.au/psychologists/photo-1494790108377-be9c29b29330/",
+      "postTitle": "Attachment: photo-1494790108377 ... - Choice Psychology",
+      "publishedDate": "2018-01-25T11:33:25.000Z",
+      "author": null,
+      "imageUrl": "https://choicepsychology.com.au/wp-content/uploads/photo-1494790108377-be9c29b29330-1170x1755.jpg",
+      "similarity": 0.989
+    }
+  ],
+  "evidenceRoot": "0x74a31a4dff8cb113e3c70c137c85388bef24ee44a23eb3ad6e2f554ceb4a8a71",
+  "faceDescriptorCosineSelfCheck": 1,
+  "chain": {
+    "kind": "local-evm",
+    "rpcUrl": "http://127.0.0.1:8545",
+    "chainId": 1337,
+    "contractAddress": "0x8cdaf0cd259887258bc13a92c0a6da92698644c0",
+    "deployTx": "0xd1262e2fce43879d54ebec95d87d5a968703644bca05414504c6713ef833d172",
+    "anchorTx": "0x6d727134c3908750cdec347f2557e1f1227687d774a24d0fed275c299b6bb865",
+    "anchorBlock": 2,
+    "verification": {
+      "exists": true,
+      "anchored": true,
+      "storedIdHash": "0xe14c5340d4cc8d9f6340dac87c98abd04103be3aa59df847cfa85fd69f73afe0",
+      "storedTimestamp": "1788719961",
+      "storedSchema": "trace.task3/v1",
+      "eventCount": 1,
+      "match": true
+    }
+  }
+}

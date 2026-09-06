@@ -1,0 +1,39 @@
+<!doctype html><html><body><script type="module">
+import { FilesetResolver, FaceDetector, ImageEmbedder } from "/node_modules/@mediapipe/tasks-vision/vision_bundle.mjs";
+try {
+  const vision = await FilesetResolver.forVisionTasks("/node_modules/@mediapipe/tasks-vision/wasm");
+  const det = await FaceDetector.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: "/models/blaze_face_short_range.tflite" },
+    runningMode: "IMAGE", minDetectionConfidence: 0.3,
+  });
+  const emb = await ImageEmbedder.createFromOptions(vision, {
+    baseOptions: { modelAssetPath: "/models/mobilenet_v3_small.tflite" },
+    runningMode: "IMAGE",
+  });
+  const blob = await (await fetch("/fixtures/real/portrait-woman.jpg")).blob();
+  const bmp = await createImageBitmap(blob);
+  const t0 = performance.now();
+  const out = det.detect(bmp);
+  const ms = Math.round(performance.now() - t0);
+  const faces = out.detections.map((d) => ({ box: d.boundingBox, score: d.categories?.[0]?.score ?? null }));
+  let embInfo = { ran: false };
+  if (out.detections[0]) {
+    try {
+      const r = emb.embed(bmp);
+      const e0 = r.embeddings?.[0]?.embedding;
+      embInfo = {
+        ran: true,
+        n: r.embeddings?.length ?? -1,
+        len: e0?.floatEmbedding?.length ?? -1,
+        head: Array.from((e0?.floatEmbedding ?? []).slice(0, 4)),
+      };
+    } catch (e) {
+      embInfo = { ran: false, error: String(e).slice(0, 200) };
+    }
+  }
+  globalThis.__mpResult = { faces, ms, emb: embInfo };
+} catch (e) {
+  globalThis.__mpResult = { error: String(e).slice(0, 400) };
+}
+globalThis.__mpDone = true;
+</script></body></html>

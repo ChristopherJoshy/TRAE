@@ -1,0 +1,26 @@
+{
+  "name": "trace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.19.0",
+  "workspaces": [
+    "apps/web",
+    "packages/shared"
+  ],
+  "scripts": {
+    "trace": "node scripts/trace-pipeline.mjs",
+    "verify-evidence": "node scripts/verify-evidence.mjs",
+    "dev": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace apps/web",
+    "start": "npm run start --workspace apps/web",
+    "test": "npm run test --workspace @trace/shared && npm run test --workspace apps/web",
+    "typecheck": "npm run typecheck --workspace @trace/shared && npm run typecheck --workspace apps/web",
+    "gen:fixtures": "node ./scripts/gen-fixtures.mjs",
+    "scan:secrets": "node ./scripts/scan-secrets.mjs"
+  },
+  "devDependencies": {
+    "ganache": "^7.9.2",
+    "solc": "^0.8.36"
+  }
+}
