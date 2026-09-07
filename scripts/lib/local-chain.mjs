@@ -88,11 +88,6 @@ export async function deployAnchor(publicClient, walletClient, account, { abi, b
   return { address: receipt.contractAddress, deployTx: hash, blockNumber: Number(receipt.blockNumber) };
 }
 
-export function evidenceRecordId(record) {
-  return keccak256(toHex(JSON.stringify(record)));
-}
-
-/** Anchor {evidenceRoot, investigationIdHash, schema, app} on-chain. Real tx. */
 export async function anchorOnChain(publicClient, walletClient, account, address, abi, payload) {
   const hash = await walletClient.writeContract({
     address, abi, functionName: "anchorEvidence",
@@ -102,9 +97,12 @@ export async function anchorOnChain(publicClient, walletClient, account, address
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
   return { txHash: hash, blockNumber: Number(receipt.blockNumber), status: receipt.status };
 }
+export function evidenceRecordId(record) {
+  return keccak256(toHex(JSON.stringify(record)));
+}
 
 /** Re-verify: read getAnchor + verifyAnchor and check the emitted event. */
-export async function verifyOnChain(publicClient, address, abi, payload) {
+export async function verifyOnChain(publicClient, address, abi, payload, { fromBlock = 0n } = {}) {
   const [idHash, timestamp, schemaVersion, appVersion, exists] = await publicClient.readContract({
     address, abi, functionName: "getAnchor", args: [payload.evidenceRoot],
   });
@@ -115,7 +113,7 @@ export async function verifyOnChain(publicClient, address, abi, payload) {
   const logs = await publicClient.getContractEvents({
     address, abi, eventName: "EvidenceAnchored",
     args: { evidenceRoot: payload.evidenceRoot },
-    fromBlock: 0n,
+    fromBlock,
   });
   return {
     exists: Boolean(exists),

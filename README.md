@@ -54,10 +54,12 @@ Fund the runner address with Sepolia ETH first (e.g. https://sepoliafaucet.com o
 https://sepolia-faucet.pk910.de); the pipeline prints the exact address and stops honestly
 with `chain-no-funds` when empty. Only `{evidenceRoot, investigationIdHash, schemaVersion,
 appVersion}` goes on-chain — never images, embeddings, or personal data.
-- `scripts/lib/` — `mp-faces` (real MediaPipe service), `exa-search`, `page-images` (SSRF-gated matcher), `local-chain` (ganache+solc+viem), `visual-search`
-- `contracts/TraceAnchor.sol` — anchor registry (commitments only, never images/biometrics)
-- `packages/shared/` — domain lib (hashing, canonicalization, scoring, timeline/graph) + vitest suites
-- `apps/web/` — bonus forensic-workstation frontend + API (demo mode, `npm run dev`)
+
+Live Sepolia deployment (Sept 2026, chain 11155111):
+
+- Contract: https://sepolia.etherscan.io/address/0x122350c73ff0a63a1d7271a411040cc79417feab#code
+- Anchor tx: https://sepolia.etherscan.io/tx/0x8001582f24e40b02fc58d31a3bf166cdacd231c9d345b62ecbdd31e9698a79b9
+- Evidence: `evidence/evidence-sepolia.json` (re-verify offline with `verify-evidence`).
 - `fixtures/` — `real/` portraits (Unsplash, freely usable) + synthetic hash-test images
 - `models/` — MediaPipe `.tflite` models (BlazeFace, MobileNet embedder)
 - `evidence/evidence-final.json` — sample verified run

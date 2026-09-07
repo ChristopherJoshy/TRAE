@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "trace.task3/v1",
+  "investigationId": "tr3-mtqmycup-d8e478",
+  "createdAt": "2026-09-07T02:44:22.128Z",
+  "input": {
+    "sha256": "b231e66c0bf1e016dea4669c6e56aba107d77d15bd92ba566705f65379e59dad",
+    "mime": "image/jpeg",
+    "width": 512,
+    "height": 768,
+    "face": {
+      "box": {
+        "x": 165,
+        "y": 191,
+        "w": 169,
+        "h": 169
+      },
+      "detectorScore": 0.938,
+      "detector": "mediapipe-blazeface",
+      "embedder": "mobilenet_v3-image-embedder/face-crop"
+    }
+  },
+  "discovery": {
+    "provider": "exa",
+    "queries": [
+      "web pages containing this image https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=512&q=80&fm=jpg&fit=crop",
+      "\"1494790108377\"",
+      "\"be9c29b29330\""
+    ],
+    "latencyMs": 1912,
+    "candidatesChecked": 15
+  },
+  "matches": [
+    {
+      "postUrl": "https://choicepsychology.com.au/psychologists/photo-1494790108377-be9c29b29330/",
+      "postTitle": "photo-1494790108377-be9c29b29330 - Choice Psychology",
+      "publishedDate": "2018-01-25T11:33:25.000Z",
+      "author": null,
+      "imageUrl": "https://choicepsychology.com.au/wp-content/uploads/photo-1494790108377-be9c29b29330-1170x1755.jpg",
+      "similarity": 0.989
+    }
+  ],
+  "evidenceRoot": "0x71d619cb99b8f0e22b294267f266d633ff866002df7c7f196f9dce11ff1dfd54",
+  "faceDescriptorCosineSelfCheck": 1,
+  "chain": {
+    "kind": "sepolia-testnet",
+    "rpcUrl": "https://eth-sepolia.g.alchemy.com/v2/<redacted>",
+    "chainId": 11155111,
+    "explorer": "https://sepolia.etherscan.io/address/0x122350c73ff0a63a1d7271a411040cc79417feab#code",
+    "contractAddress": "0x122350c73ff0a63a1d7271a411040cc79417feab",
+    "deployTx": "0x22a954278b11bb02c6d22886add5fceac0895198db0717f8fede87825accda68",
+    "anchorTx": "0x8001582f24e40b02fc58d31a3bf166cdacd231c9d345b62ecbdd31e9698a79b9",
+    "anchorBlock": 11651360,
+    "verification": {
+      "exists": true,
+      "anchored": true,
+      "storedIdHash": "0x4724bcb75cce9404af46373f67d01b5a61094b2b812874e87af3abb2db17cbb3",
+      "storedTimestamp": "1788749100",
+      "storedSchema": "trace.task3/v1",
+      "eventCount": 1,
+      "match": true
+    }
+  }
+}

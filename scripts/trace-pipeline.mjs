@@ -98,7 +98,8 @@ try {
   const ordered = [...disc.candidates].sort(
     (a, b) => (b.imageLinks?.length ?? 0) - (a.imageLinks?.length ?? 0),
   );
-  for (const cand of ordered.slice(0, 8)) {
+  const maxPages = Math.min(12, Math.max(1, Number(a["max-pages"] ?? 10)));
+  for (const cand of ordered.slice(0, maxPages)) {
     try {
       const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks });
       const hits = m.scored.filter((s) => s.match);
@@ -164,20 +165,22 @@ try {
   const anchored = await anchorOnChain(chain.publicClient, chain.walletClient, chain.account, address, abi, payload);
   log("chain", `anchored tx ${anchored.txHash.slice(0, 18)}… block ${anchored.blockNumber}`);
 
-  // 7. RE-VERIFICATION against chain state
-  const check = await verifyOnChain(chain.publicClient, address, abi, payload);
+  // 7. RE-VERIFICATION against chain state (events scoped to deploy block:
+  // free-tier RPCs cap eth_getLogs ranges)
+  const check = await verifyOnChain(chain.publicClient, address, abi, payload, { fromBlock: BigInt(deployBlock) });
   log("verify", `exists=${check.exists} anchored=${check.anchored} events=${check.eventCount} MATCH=${check.match}`);
   if (!check.match) throw new Error("On-chain re-verification failed.");
   const recordId = evidenceRecordId({ evidenceRoot, postUrl: top.postUrl, similarity: top.similarity });
   log("verify", `record commitment ${recordId.slice(0, 18)}…`);
 
+  const safeRpc = chain.rpcUrl.replace(/(\/v2\/).+$/, "$1<redacted>").replace(/([?&](api[_-]?key|key)=)[^&]+/i, "$1<redacted>");
   const out = {
     ...record,
     evidenceRoot,
     faceDescriptorCosineSelfCheck: 1,
     chain: {
       kind: isSepolia ? "sepolia-testnet" : "local-evm",
-      rpcUrl: chain.rpcUrl, chainId: isSepolia ? 11155111 : 1337,
+      rpcUrl: safeRpc, chainId: isSepolia ? 11155111 : 1337,
       explorer: isSepolia ? `https://sepolia.etherscan.io/address/${address}#code` : null,
       contractAddress: address, deployTx, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
       verification: check,
