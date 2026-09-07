@@ -178,11 +178,10 @@ try {
   const ordered = [...disc.candidates].sort(
     (x, y) => (y.imageLinks?.length ?? 0) - (x.imageLinks?.length ?? 0),
   );
-  const maxPages = Math.min(24, Math.max(1, Number(a["max-pages"] ?? 20)));
+  const maxPages = Math.min(24, Math.max(1, Number(a["max-pages"] ?? 10)));
   const checkedLines = [];
   const allScored = [];
   const pages = ordered.slice(0, maxPages);
-  const matchSp = spin(`matching page images…`);
   for (const [pi, cand] of pages.entries()) {
     const host = (() => { try { return new URL(cand.url).hostname; } catch { return cand.url; } })();
     matchSp.text = `[${pi + 1}/${pages.length}] ${host}…`;
