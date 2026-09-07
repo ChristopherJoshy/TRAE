@@ -1,7 +1,7 @@
 {
   "schemaVersion": "trace.task3/v1",
-  "investigationId": "tr3-mtqrq12u-f3d0",
-  "createdAt": "2026-09-07T04:56:41.340Z",
+  "investigationId": "tr3-mtqtct6k-b13c19",
+  "createdAt": "2026-09-07T05:42:34.525Z",
   "input": {
     "sha256": "c583b9830c1fe1a6ab5ae147f6b72d6a656893a9e76dec3ded2e373c68006faa",
     "mime": "image/jpeg",
@@ -23,10 +23,12 @@
     "provider": "exa",
     "queries": [
       "web pages containing this image https://avatars.githubusercontent.com/u/141357296?v=4",
-      "\"141357296\""
+      "\"141357296\"",
+      "\"Karthik Krishnan\"",
+      "\"iamkarthik2004\" profile photo"
     ],
-    "latencyMs": 1357,
-    "candidatesChecked": 13
+    "latencyMs": 1634,
+    "candidatesChecked": 26
   },
   "matches": [
     {
@@ -40,7 +42,7 @@
       "faceCos": null
     }
   ],
-  "evidenceRoot": "0xda7b622a008ca903e2e80c8bb256cde6dd283352f1ed9bc0aa284b06c65568a1",
+  "evidenceRoot": "0xa64e63257fdd97569ea23734c6c811a4f13e5f5d60e1440be397716e6f0389f7",
   "faceDescriptorCosineSelfCheck": 1,
   "chain": {
     "kind": "local-evm",
@@ -49,13 +51,13 @@
     "explorer": null,
     "contractAddress": "0x8cdaf0cd259887258bc13a92c0a6da92698644c0",
     "deployTx": "0xd1262e2fce43879d54ebec95d87d5a968703644bca05414504c6713ef833d172",
-    "anchorTx": "0x86400eda15788f23e8bcdbd5ff80ac13e52c725c1bd6deb35c51e6e3929328d2",
+    "anchorTx": "0xe6947722ea4c0b652d7e6c14f00f2d29a55ac620d30fb3a586feae9a9f140bd1",
     "anchorBlock": 2,
     "verification": {
       "exists": true,
       "anchored": true,
-      "storedIdHash": "0xaf0d7f5c9832330695ce3f14e6e111536df8bffaf9711085a961fdf29ad9ab97",
-      "storedTimestamp": "1788757002",
+      "storedIdHash": "0xcc66513b85fc88263759e707583e27b5a28e546c54ce8dbac1cbb0a142bb6f36",
+      "storedTimestamp": "1788759755",
       "storedSchema": "trace.task3/v1",
       "eventCount": 1,
       "match": true

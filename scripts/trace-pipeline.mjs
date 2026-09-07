@@ -5,8 +5,17 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { PNG } from "pngjs";
 import {
-  validateImage, decodeImage, fingerprintImage, sha256Bytes, evidenceRootOf,
+  validateImage, decodeImage, fingerprintImage, sha256Bytes, evidenceRootOf, normalizeUrl,
 } from "@trace/shared";
+
+/** Canonical form for dedupe: host-case/trailing-slash/www variants merge. */
+function canonicalUrl(u) {
+  try {
+    return normalizeUrl(String(u).replace(/^(https?:\/\/)www\./i, "$1"));
+  } catch {
+    return String(u);
+  }
+}
 import { detectFacesReal, embedCropReal, closeFaceService } from "./lib/mp-faces.mjs";
 import { loadEnvFile, exaDiscover, exaContents } from "./lib/exa-search.mjs";
 import { matchPageImages } from "./lib/page-images.mjs";
@@ -101,32 +110,55 @@ try {
   console.log("  face box tinted above (real BlazeFace coordinates)");
   // 3. WEB DISCOVERY (live Exa neural search)
   const filename = a.image ? a.image.split(/[/\\]/).pop() : null;
-  const exaSp = spin("querying Exa neural search…");
-  const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: [] });
-  // Authoritative identity resolution: GitHub avatar URLs map 1:1 to an
-  // account via the free official API. Injected first, still verified by
-  // byte-level matching like every other candidate — never trusted blindly.
+  // Identity first: GitHub avatar URLs map 1:1 to a login + display name via
+  // the free official API (output only, never invented). Names feed Exa hints
+  // and the identity-chain leg; the profile itself is injected as a candidate
+  // but still verified by byte-level matching like everything else.
+  let identityClues = { names: [], logins: [] };
   if (a["image-url"]) {
     try {
       const { resolveGithubAvatar } = await import("./lib/github-resolve.mjs");
       const gh = await resolveGithubAvatar(a["image-url"]);
-      if (gh && !disc.candidates.some((c) => c.url === gh.profileUrl)) {
-        disc.candidates.unshift({
-          url: gh.profileUrl,
-          title: `@${gh.login} — GitHub profile (avatar ID ${gh.id} resolved via api.github.com)`,
-          publishedDate: null, author: gh.login, score: null,
-          query: "github-id-resolve", highlights: [],
-          imageLinks: [gh.avatarUrl],
-        });
-        log("search", `avatar resolved: ${gh.profileUrl} (@${gh.login})`);
+      if (gh) {
+        identityClues = { names: gh.name ? [gh.name] : [], logins: [gh.login], profile: gh };
       }
     } catch (e) {
       log("search", `avatar resolution skipped (${e.code ?? "error"})`);
     }
   }
+  const nameHints = [
+    ...identityClues.names.slice(0, 1).map((n) => `"${n}"`),
+    ...identityClues.logins.slice(0, 1).map((l) => `"${l}" profile photo`),
+  ];
+  const exaSp = spin("querying Exa neural search…");
+  const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: nameHints });
+  const gh = identityClues.profile ?? null;
+  if (gh && !disc.candidates.some((c) => canonicalUrl(c.url) === canonicalUrl(gh.profileUrl))) {
+    disc.candidates.unshift({
+      url: gh.profileUrl,
+      title: `@${gh.login} — GitHub profile (avatar ID ${gh.id} resolved via api.github.com)`,
+      publishedDate: null, author: gh.login, score: null,
+      query: "github-id-resolve", highlights: [],
+      imageLinks: [gh.avatarUrl],
+    });
+    log("search", `avatar resolved: ${gh.profileUrl} (@${gh.login}${gh.name ? `, ${gh.name}` : ""})`);
+  }
+  // Reddit pass: free keyless PullPush API over the same ID tokens.
+  try {
+    const { redditDiscover } = await import("./lib/reddit-search.mjs");
+    const rd = await redditDiscover({ imageUrl: a["image-url"] ?? null, filename });
+    let added = 0;
+    for (const c of rd.candidates) {
+      if (!disc.candidates.some((x) => canonicalUrl(x.url) === canonicalUrl(c.url))) {
+        disc.candidates.push(c);
+        added++;
+      }
+    }
+    log("search", `${rd.note}: +${added} new (${rd.latencyMs}ms)`);
+  } catch (e) {
+    log("search", `reddit pass skipped (${e.code ?? "error"})`);
+  }
   const contents = await exaContents(disc.candidates.map((c) => c.url));
-  exaSp.succeed(`${disc.candidates.length} candidate pages (${disc.latencyMs}ms search)`);
-  log("search", `queries: ${disc.queries.join(" | ").slice(0, 160)}${disc.platformNote ? ` + ${disc.platformNote}` : ""}`);
   const pageEvidence = new Map(contents.pages.map((p) => [p.url, p]));
 
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
@@ -135,7 +167,7 @@ try {
   const ordered = [...disc.candidates].sort(
     (x, y) => (y.imageLinks?.length ?? 0) - (x.imageLinks?.length ?? 0),
   );
-  const maxPages = Math.min(12, Math.max(1, Number(a["max-pages"] ?? 10)));
+  const maxPages = Math.min(24, Math.max(1, Number(a["max-pages"] ?? 20)));
   const checkedLines = [];
   const allScored = [];
   const pages = ordered.slice(0, maxPages);
@@ -147,7 +179,7 @@ try {
       const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks, faceRef: { descriptor, score: best.score } });
       const hits = m.scored.filter((s) => s.match);
       const fv = hits.filter((s) => s.via === "face-verified").length;
-      log("match", `${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}${fv > 0 ? `, ${fv} face-verified` : ""})`);
+      log("match", `[${pi + 1}/${pages.length}] ${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}${fv > 0 ? `, ${fv} face-verified` : ""})`);
       checkedLines.push(`${host}: ${hits.length}/${m.scored.length} @ best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}${fv > 0 ? " (face-verified)" : ""}`);
       for (const s of m.scored) allScored.push({ ...s, pageUrl: cand.url });
       const ev = pageEvidence.get(cand.url);
@@ -160,20 +192,48 @@ try {
         });
       }
     } catch (e) {
-      log("match", `${cand.url.slice(0, 60)}: skipped (${e.code ?? "error"})`);
-      checkedLines.push(`${host}: skipped (${e.code ?? "error"})`);
+      const why = e.code ?? (e instanceof Error ? e.message.slice(0, 80) : "error");
+      log("match", `[${pi + 1}/${pages.length}] ${cand.url.slice(0, 60)}: skipped (${why})`);
+      checkedLines.push(`${host}: skipped (${why})`);
     }
   }
-  if (confirmed.length === 0) { matchSp.stop(); throw new Error("No matching post confirmed — pipeline stops rather than inventing one."); }
-  confirmed.sort((x, y) => y.similarity - x.similarity);
-  const top = confirmed[0];
-  matchSp.succeed(`${confirmed.length} confirmed, best ${top.similarity} (${pages.length} pages)`);
-  log("match", `STRONGEST: ${top.postUrl} similarity=${top.similarity}`);
+  // 4b. IDENTITY CHAIN (before any failure verdict — it can rescue a match):
+  // real names/logins only. GitHub user search finds more avatars of the same
+  // person; each is face-verified before it counts.
+  if (identityClues.names.length > 0 || identityClues.logins.length > 0) {
+    phase("4b", 6, "IDENTITY CHAIN");
+    const idSp = spin("searching accounts by identity…");
+    try {
+      const { identityChainSearch } = await import("./lib/identity-chain.mjs");
+      const ic = await identityChainSearch({
+        names: identityClues.names, logins: identityClues.logins,
+        faceDescriptor: descriptor, faceThreshold: 0.75, maxAvatars: 6,
+      });
+      idSp.succeed(`identity chain: ${ic.confirmed.length} face-consistent of ${ic.checked} avatars (${ic.note})`);
+      for (const c of ic.confirmed) {
+        if (!confirmed.some((x) => canonicalUrl(x.postUrl) === canonicalUrl(c.postUrl))) confirmed.push(c);
+      }
+    } catch (e) {
+      idSp.stop();
+      log("match", `identity chain skipped (${e.code ?? "error"})`);
+    }
+  }
   const runners = allScored
     .filter((s) => !s.match && s.similarity > 0)
     .sort((x, y) => y.similarity - x.similarity)
-    .slice(0, 3);
+    .slice(0, 5);
+  if (confirmed.length === 0) {
+    matchSp.stop();
+    matchTable([], runners);
+    log("match", `closest miss: ${runners[0] ? `${runners[0].similarity.toFixed(3)}${runners[0].faceCos ? ` (face ${runners[0].faceCos})` : ""} @ ${runners[0].pageUrl}` : "none — no comparable images downloaded"}`);
+    throw new Error("No matching post confirmed — pipeline stops rather than inventing one.");
+  }
+  confirmed.sort((x, y) => y.similarity - x.similarity);
+  let top = confirmed[0];
+  matchSp.succeed(`${confirmed.length} confirmed, best ${top.similarity} (${pages.length} pages)`);
+  log("match", `STRONGEST: ${top.postUrl} similarity=${top.similarity}`);
   matchTable(confirmed, runners);
+
 
   // 5. EVIDENCE RECORD + ROOT
   phase(5, 6, "EVIDENCE SEAL");
@@ -260,6 +320,7 @@ try {
 } catch (e) {
   failLine(e.code, e instanceof Error ? e.message : String(e));
   verdict(false, Date.now() - t0, "");
+  process.exitCode = 1;
 } finally {
   if (faceSvcOpen) await closeFaceService().catch(() => null);
   if (chain) await chain.stop().catch(() => null);

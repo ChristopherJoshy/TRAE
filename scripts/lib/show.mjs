@@ -65,9 +65,9 @@ export function matchTable(confirmed, runnersUp = []) {
   });
   if (runnersUp.length > 0) {
     console.log(chalk.bold("\n  ◌ RUNNERS-UP (below threshold — observed, NOT claimed)"));
-    console.log(chalk.dim("  ────────────────────────────────────────────────────────────"));
-    runnersUp.slice(0, 3).forEach((r) => {
-      console.log(`     ${simBar(r.similarity)}  ${chalk.dim(hostOf(r.pageUrl ?? r.postUrl ?? ""))}`);
+    runnersUp.slice(0, 5).forEach((r) => {
+      const face = r.faceCos != null ? chalk.dim(` face ${Number(r.faceCos).toFixed(2)}`) : "";
+      console.log(`     ${simBar(r.similarity)}  ${chalk.dim(hostOf(r.pageUrl ?? r.postUrl ?? ""))}${face}`);
     });
   }
 }

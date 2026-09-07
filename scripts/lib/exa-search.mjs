@@ -45,6 +45,23 @@ async function call(path, body, timeoutMs = 45000) {
     clearTimeout(t);
   }
 }
+function canonicalKey(u) {
+  try {
+    const x = new URL(String(u));
+    x.hostname = x.hostname.toLowerCase().replace(/^www\./, "");
+    x.hash = "";
+    let p = x.pathname.replace(/\/+$/, "");
+    if (p === "") p = "/";
+    x.pathname = p;
+    x.searchParams.sort();
+    for (const k of [...x.searchParams.keys()]) {
+      if (/^(utm_|fbclid|gclid|mc_|igshid|vero_|_hs)/i.test(k)) x.searchParams.delete(k);
+    }
+    return x.toString();
+  } catch {
+    return String(u);
+  }
+}
 export async function exaDiscover({ imageUrl = null, filename = null, hints = [] } = {}) {
   const queries = [];
   if (imageUrl) {
@@ -63,7 +80,7 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
   if (queries.length === 0) queries.push("portrait photo source page");
   // Platform-targeted pass (explicitly requested coverage): the same ID
   // tokens scoped to social/profile networks via an explicit domain list.
-  const PLATFORMS = ["github.com", "instagram.com", "x.com", "linkedin.com"];
+  const PLATFORMS = ["github.com", "instagram.com", "x.com", "linkedin.com", "tiktok.com", "facebook.com", "reddit.com", "pinterest.com"];
   const seen = new Map();
   let latencyMs = 0;
   let platformNote = null;
@@ -72,7 +89,7 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
     latencyMs += ms;
     for (const r of json.results ?? []) {
       if (!r.url || !r.url.startsWith("http")) continue;
-      if (!seen.has(r.url)) {
+      if (!seen.has(canonicalKey(r.url))) {
         const extraLinks = Array.isArray(r.extras?.imageLinks)
           ? r.extras.imageLinks.filter((u) => typeof u === "string")
           : [];
@@ -80,7 +97,7 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
           ...(typeof r.image === "string" ? [r.image] : []),
           ...extraLinks,
         ].filter((u) => /^https?:\/\//.test(u)).slice(0, 6);
-        seen.set(r.url, {
+        seen.set(canonicalKey(r.url), {
           url: r.url, title: r.title ?? null, publishedDate: r.publishedDate ?? null,
           author: r.author ?? null, score: r.score ?? null, query: q,
           highlights: (r.highlights ?? []).slice(0, 3),
@@ -100,7 +117,7 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
       latencyMs += ms;
       platformNote = `platform pass (${PLATFORMS.join(", ")})`;
       for (const r of json.results ?? []) {
-        if (!r.url || !r.url.startsWith("http") || seen.has(r.url)) continue;
+        if (!r.url || !r.url.startsWith("http") || seen.has(canonicalKey(r.url))) continue;
         const extraLinks = Array.isArray(r.extras?.imageLinks)
           ? r.extras.imageLinks.filter((u) => typeof u === "string")
           : [];
@@ -108,7 +125,7 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
           ...(typeof r.image === "string" ? [r.image] : []),
           ...extraLinks,
         ].filter((u) => /^https?:\/\//.test(u)).slice(0, 6);
-        seen.set(r.url, {
+        seen.set(canonicalKey(r.url), {
           url: r.url, title: r.title ?? null, publishedDate: r.publishedDate ?? null,
           author: r.author ?? null, score: r.score ?? null, query: `${pq} [platforms]`,
           highlights: (r.highlights ?? []).slice(0, 3),
@@ -119,12 +136,12 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
       platformNote = `platform pass skipped (${e.code ?? "error"})`;
     }
   }
-  return { queries, latencyMs, platformNote, candidates: [...seen.values()].slice(0, 15) };
+  return { queries, latencyMs, platformNote, candidates: [...seen.values()].slice(0, 25) };
 }
 
 /** Pull real page evidence for discovered URLs. */
 export async function exaContents(urls) {
-  const list = [...new Set(urls)].filter((u) => u.startsWith("http")).slice(0, 10);
+  const list = [...new Set(urls)].filter((u) => u.startsWith("http")).slice(0, 14);
   if (list.length === 0) return { latencyMs: 0, pages: [] };
   const { json, latencyMs } = await call("/contents", { urls: list, highlights: true });
   return {

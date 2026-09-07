@@ -29,11 +29,18 @@ Sample verified output: `evidence/evidence-final.json` (match similarity 0.989, 
 1. **Face scan** — input validated (magic bytes, 15 MB cap) and decoded; **MediaPipe BlazeFace**
    (real model, headless Chromium, local WASM) detects faces with scores; the largest face is
    cropped and embedded with a **MobileNetV3 ImageEmbedder** (1024-dim, memory-only, never stored).
-2. **Web discovery** — live Exa `/search` (ID-token + context queries) finds genuinely related
-   pages; Exa `/contents` + Exa-crawled `imageLinks` supply page evidence without bot-wall scraping.
+2. **Web discovery** — live Exa `/search` (ID-token + context queries, platform pass over
+   GitHub/Instagram/X/LinkedIn/TikTok/Facebook/Reddit/Pinterest) finds genuinely related
+   pages; Exa `/contents` + Exa-crawled `imageLinks` supply page evidence without bot-wall
+   scraping. Free keyless legs: Reddit via PullPush, GitHub avatar→profile resolution.
 3. **Measured matching** — each candidate page image is downloaded (SSRF-gated) and compared with
    windowed-containment perceptual similarity. Threshold **0.72**, calibrated: same image ≈1.0,
-   different person ≈0.48, unrelated ≈0.47. Below threshold → no match, pipeline stops honestly.
+   different person ≈0.48, unrelated ≈0.47. Mid-band images (0.40–0.72) get **face verification**:
+   faces detected + embedded and compared to the input face (same face ≈0.88, others ≈0.41,
+   threshold 0.75). Below every bar → no match, pipeline stops honestly.
+3b. **Identity chain** — avatar URLs resolve to a real login + name (api.github.com); GitHub
+   user search finds more avatars of that identity and each is face-verified before it counts.
+   Same-name strangers are rejected by embedding distance, never merged.
 4. **Seal** — canonical JSON → SHA-256 Evidence Root (`0x…`).
 5. **Blockchain** — ganache local EVM (chain 1337) + solc-compiled `contracts/TraceAnchor.sol`,
    deployed and anchored for real; `getAnchor`/`verifyAnchor` + `EvidenceAnchored` event re-checked.

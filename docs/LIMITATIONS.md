@@ -16,3 +16,9 @@
 - **Contract tests use a local simulator**, not a public testnet, in CI.
 - **Provenance is evaluated evidence, not absolute truth.** The TRACE Seal certifies integrity
   (unchanged since sealing), never correctness.
+- Social platforms (Instagram, X, LinkedIn) expose no public face-lookup API;
+  text search cannot match a face without identifiers, and their pages/images
+  usually require login. TRACE covers them via platform-scoped Exa discovery and
+  still verifies every image by bytes — a login-walled image can be discovered
+  but never confirmed. GitHub is the exception: avatar URLs map 1:1 to accounts
+  through the free official api.github.com endpoint.
