@@ -11,3 +11,7 @@ test-results/
 
 # local pipeline run outputs (committed samples live in evidence/)
 /evidence-*.json
+# local video edits, venv, captions workbench (never committed)
+media/
+# raw screen recordings (edited outputs live in media/, also ignored)
+Videos/
