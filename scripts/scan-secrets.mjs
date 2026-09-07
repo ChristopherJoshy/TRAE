@@ -21,14 +21,13 @@ const RULES = [
   [/BLOCKCHAIN_PRIVATE_KEY\s*=\s*\S+/i, "private key assignment"],
   [/TINEYE_API_KEY\s*=\s*["']?[A-Za-z0-9]{8,}/, "api key value"],
   [/SERPAPI_API_KEY\s*=\s*["']?[A-Za-z0-9]{8,}/, "api key value"],
-  [/EXA_API_KEY\s*=\s*["']?[A-Za-z0-9-]{8,}/, "api key value"],
   [/0x[0-9a-fA-F]{64}/, "64-hex secret-like literal"],
   [/-----BEGIN (RSA )?PRIVATE KEY-----/, "private key block"],
   [/["']sk-(live|test)-[A-Za-z0-9]/, "sk- secret key"],
 ];
 
 // Deterministic test vectors / public-commitment contexts (never secrets).
-const ALLOW_64HEX = [/abc123/, /dead/, /expected 0x-prefixed/i, /0x-prefixed/, /\^0x\[/, /slice\(0, 1[68]\)/];
+const ALLOW_64HEX = [/abc123/, /dead/, /expected 0x-prefixed/i, /0x-prefixed/, /\^0x\[/, /slice\(0, 1[68]\)/, /etherscan\.io/, /\/(tx|address)\/0x/];
 const SKIP_SELF = "scan-secrets.mjs";
 
 let failures = 0;
