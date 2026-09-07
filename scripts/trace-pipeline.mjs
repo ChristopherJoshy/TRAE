@@ -171,7 +171,7 @@ try {
   } catch (e) {
     log("search", `page-evidence fetch failed (${e.code ?? "error"}) — matching continues on crawled image links (PARTIAL coverage)`);
   }
-
+  const pageEvidence = new Map((contents.pages ?? []).map((p) => [p.url, p]));
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
   phase(4, 6, "MEASURED MATCHING");
   const confirmed = [];
