@@ -54,7 +54,7 @@ try {
   loadEnvFile();
   const a = args();
   if (!a.image && !a["image-url"]) {
-    console.error("Usage: node scripts/trace-pipeline.mjs --image <path> [--image-url <url>] [--out evidence.json] [--port 8545]");
+    console.error("Usage: node scripts/trace-pipeline.mjs --image <path> [--image-url <url>] [--out evidence.json] [--port 8545] [--chain local|sepolia]");
     process.exit(2);
   }
   const investigationId = `tr3-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffffff).toString(16)}`;
@@ -135,10 +135,24 @@ try {
   const evidenceRoot = evidenceRootOf(record);
   log("seal", `Evidence Root ${evidenceRoot}`);
 
-  // 6. BLOCKCHAIN ANCHOR (real local EVM)
+  // 6. BLOCKCHAIN ANCHOR (local EVM by default, Sepolia with --chain sepolia)
   const { abi, bytecode } = compileAnchor();
   log("chain", "TraceAnchor.sol compiled with solc");
-  chain = await startLocalChain(Number(a.port ?? 8545));
+  const chainName = (a.chain ?? "local").toLowerCase();
+  const isSepolia = chainName === "sepolia";
+  if (isSepolia) {
+    const { SEPOLIA, connectExternalChain } = await import("./lib/local-chain.mjs");
+    const rpcUrl = process.env["SEPOLIA_RPC_URL"]?.trim() || "https://ethereum-sepolia-rpc.publicnode.com";
+    chain = await connectExternalChain({
+      rpcUrl, chain: SEPOLIA, privateKey: process.env["SEPOLIA_PRIVATE_KEY"] ?? "",
+    });
+    log("chain", `sepolia ${chain.address} balance=${chain.balanceWei} wei`);
+    if (chain.balanceWei === "0") {
+      throw Object.assign(new Error(`No Sepolia ETH at ${chain.address} — fund it from a faucet, then rerun.`), { code: "chain-no-funds" });
+    }
+  } else {
+    chain = await startLocalChain(Number(a.port ?? 8545));
+  }
   const { address, deployTx, blockNumber: deployBlock } = await deployAnchor(chain.publicClient, chain.walletClient, chain.account, { abi, bytecode });
   log("chain", `deployed ${address} in tx ${deployTx.slice(0, 18)}… (block ${deployBlock})`);
   const payload = {
@@ -162,7 +176,9 @@ try {
     evidenceRoot,
     faceDescriptorCosineSelfCheck: 1,
     chain: {
-      kind: "local-evm", rpcUrl: chain.rpcUrl, chainId: 1337,
+      kind: isSepolia ? "sepolia-testnet" : "local-evm",
+      rpcUrl: chain.rpcUrl, chainId: isSepolia ? 11155111 : 1337,
+      explorer: isSepolia ? `https://sepolia.etherscan.io/address/${address}#code` : null,
       contractAddress: address, deployTx, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
       verification: check,
     },

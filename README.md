@@ -41,15 +41,19 @@ Sample verified output: `evidence/evidence-final.json` (match similarity 0.989, 
 
 ## Which blockchain
 
-Local EVM (ganache, chain ID 1337) running the committed `contracts/TraceAnchor.sol`
-(`anchorEvidence` / `getAnchor` / `verifyAnchor`, `EvidenceAnchored` event). The task allows a
-local chain; every hash, transaction, receipt, and event is real chain state. Swap `scripts/lib/local-chain.mjs`
-for Sepolia/mainnet RPC + funded key to anchor publicly without changing the pipeline.
+Two modes (`--chain`):
 
-## Repo layout
+- `local` (default) — ganache EVM (chain 1337), no funds or network needed.
+- `sepolia` — Ethereum Sepolia testnet via `SEPOLIA_RPC_URL` (default public endpoint)
+  with key from `SEPOLIA_PRIVATE_KEY`. Deploys `contracts/TraceAnchor.sol`, anchors the
+  Evidence Root, and re-verifies `getAnchor`/`verifyAnchor` plus the `EvidenceAnchored`
+  event. View the contract on https://sepolia.etherscan.io (address printed per run and
+  stored as `chain.explorer` in the evidence file).
 
-- `scripts/trace-pipeline.mjs` — the pipeline CLI
-- `scripts/verify-evidence.mjs` — offline verifier + tamper lab
+Fund the runner address with Sepolia ETH first (e.g. https://sepoliafaucet.com or
+https://sepolia-faucet.pk910.de); the pipeline prints the exact address and stops honestly
+with `chain-no-funds` when empty. Only `{evidenceRoot, investigationIdHash, schemaVersion,
+appVersion}` goes on-chain — never images, embeddings, or personal data.
 - `scripts/lib/` — `mp-faces` (real MediaPipe service), `exa-search`, `page-images` (SSRF-gated matcher), `local-chain` (ganache+solc+viem), `visual-search`
 - `contracts/TraceAnchor.sol` — anchor registry (commitments only, never images/biometrics)
 - `packages/shared/` — domain lib (hashing, canonicalization, scoring, timeline/graph) + vitest suites

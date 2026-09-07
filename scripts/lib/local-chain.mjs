@@ -12,6 +12,13 @@ import { mnemonicToAccount } from "viem/accounts";
 
 const CHAIN_ID = 1337;
 
+export const SEPOLIA = {
+  id: 11155111, name: "sepolia",
+  nativeCurrency: { name: "Sepolia Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: { default: { http: ["https://ethereum-sepolia-rpc.publicnode.com"] } },
+  blockExplorers: { default: { name: "Etherscan", url: "https://sepolia.etherscan.io" } },
+};
+
 export function compileAnchor() {
   const source = readFileSync(join(process.cwd(), "contracts", "TraceAnchor.sol"), "utf8");
   const input = {
@@ -49,6 +56,28 @@ export async function startLocalChain(port = 8545) {
     server, chain, publicClient, walletClient, account,
     rpcUrl: `http://127.0.0.1:${port}`,
     async stop() { await server.close(); },
+  };
+}
+/**
+ * Connect to an external EVM testnet (Sepolia). Private key comes from
+ * SEPOLIA_PRIVATE_KEY env only — never hardcoded, never logged.
+ */
+export async function connectExternalChain({ rpcUrl, chain, privateKey }) {
+  if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey.trim())) {
+    const err = new Error("SEPOLIA_PRIVATE_KEY is missing or malformed (0x + 64 hex).");
+    err.code = "chain-not-configured";
+    throw err;
+  }
+  const { privateKeyToAccount } = await import("viem/accounts");
+  const account = privateKeyToAccount(privateKey.trim());
+  const transport = http(rpcUrl, { timeout: 60000 });
+  const publicClient = createPublicClient({ chain, transport });
+  const walletClient = createWalletClient({ account, chain, transport });
+  const balance = await publicClient.getBalance({ address: account.address });
+  return {
+    server: null, chain, publicClient, walletClient, account,
+    rpcUrl, address: account.address, balanceWei: balance.toString(),
+    async stop() { /* external chain: nothing to stop */ },
   };
 }
 
