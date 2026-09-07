@@ -38,24 +38,10 @@ async function githubApi(path) {
 }
 
 async function downloadImage(url, timeoutMs = 15000, maxBytes = 5 * 1024 * 1024) {
-  const u = new URL(url);
-  if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error("bad-scheme");
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(u.toString(), {
-      signal: ctrl.signal, redirect: "follow",
-      headers: { "User-Agent": "TRACE-pipeline/0.1 (+research prototype)" },
-    });
-    if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}`), { code: "fetch-failed" });
-    const ct = res.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
-    if (!ct.startsWith("image/")) throw Object.assign(new Error(`not-an-image (${ct})`), { code: "not-an-image" });
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length > maxBytes) throw Object.assign(new Error("too-large"), { code: "file-too-large" });
-    return new Uint8Array(buf);
-  } finally {
-    clearTimeout(t);
-  }
+  // Same SSRF gate + caps as every other matching leg (DNS-checked, no
+  // private targets, image content-type, size cap).
+  const { fetchImageGated } = await import("./page-images.mjs");
+  return fetchImageGated(url, { timeoutMs, maxBytes });
 }
 
 /**
@@ -77,7 +63,7 @@ export async function identityChainSearch({ names = [], logins = [], faceDescrip
   const { detectFacesReal, embedCropReal } = await import("./mp-faces.mjs");
   const seen = new Set();
   const confirmed = [];
-  let checked = 0;
+  const rejected = [];
   const notes = [];
   for (const q of queries) {
     let items = [];
@@ -115,7 +101,7 @@ export async function identityChainSearch({ names = [], logins = [], faceDescrip
           }
         }
         const emb = await embedCropReal(PNG.sync.write(crop));
-        if (!emb || emb.length === 0) continue;
+        if (!emb || emb.length === 0) { rejected.push({ login: it.login, cos: null }); continue; }
         const cos = Math.round(cosine(emb, faceDescriptor) * 1000) / 1000;
         if (cos >= faceThreshold) {
           confirmed.push({
@@ -128,11 +114,13 @@ export async function identityChainSearch({ names = [], logins = [], faceDescrip
             via: "identity-chain",
             faceCos: cos,
           });
+        } else {
+          rejected.push({ login: it.login, cos });
         }
       } catch {
         continue; // one bad avatar never sinks the chain
       }
     }
   }
-  return { confirmed, checked, note: notes.join("; ") };
+  return { confirmed, checked, rejected, note: notes.join("; ") };
 }

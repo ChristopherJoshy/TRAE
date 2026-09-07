@@ -131,7 +131,14 @@ try {
     ...identityClues.logins.slice(0, 1).map((l) => `"${l}" profile photo`),
   ];
   const exaSp = spin("querying Exa neural search…");
-  const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: nameHints });
+  let disc = { queries: [], latencyMs: 0, platformNote: null, candidates: [] };
+  try {
+    disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: nameHints });
+    exaSp.succeed(`${disc.candidates.length} candidate pages (${disc.latencyMs}ms Exa)`);
+  } catch (e) {
+    exaSp.stop();
+    log("search", `Exa discovery failed (${e.code ?? "error"}) — continuing with identity/Reddit legs (PARTIAL coverage)`);
+  }
   const gh = identityClues.profile ?? null;
   if (gh && !disc.candidates.some((c) => canonicalUrl(c.url) === canonicalUrl(gh.profileUrl))) {
     disc.candidates.unshift({
@@ -158,8 +165,12 @@ try {
   } catch (e) {
     log("search", `reddit pass skipped (${e.code ?? "error"})`);
   }
-  const contents = await exaContents(disc.candidates.map((c) => c.url));
-  const pageEvidence = new Map(contents.pages.map((p) => [p.url, p]));
+  let contents = { latencyMs: 0, pages: [] };
+  try {
+    contents = await exaContents(disc.candidates.map((c) => c.url));
+  } catch (e) {
+    log("search", `page-evidence fetch failed (${e.code ?? "error"}) — matching continues on crawled image links (PARTIAL coverage)`);
+  }
 
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
   phase(4, 6, "MEASURED MATCHING");
@@ -210,6 +221,9 @@ try {
         faceDescriptor: descriptor, faceThreshold: 0.75, maxAvatars: 6,
       });
       idSp.succeed(`identity chain: ${ic.confirmed.length} face-consistent of ${ic.checked} avatars (${ic.note})`);
+      for (const r of (ic.rejected ?? []).slice(0, 4)) {
+        log("match", `identity reject: @${r.login} face ${r.cos ?? "no-face"} (below 0.75)`);
+      }
       for (const c of ic.confirmed) {
         if (!confirmed.some((x) => canonicalUrl(x.postUrl) === canonicalUrl(c.postUrl))) confirmed.push(c);
       }
@@ -299,7 +313,7 @@ try {
       kind: isSepolia ? "sepolia-testnet" : "local-evm",
       rpcUrl: safeRpc, chainId: isSepolia ? 11155111 : 1337,
       explorer: isSepolia ? `https://sepolia.etherscan.io/address/${address}#code` : null,
-      contractAddress: address, deployTx, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
+      contractAddress: address, deployTx, deployBlock, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
       verification: check,
     },
   };

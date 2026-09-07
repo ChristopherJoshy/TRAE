@@ -58,6 +58,7 @@
       "storedSchema": "trace.task3/v1",
       "eventCount": 1,
       "match": true
-    }
+    },
+    "deployBlock": 11651358
   }
 }

@@ -57,6 +57,12 @@ async function fetchCapped(u, { timeoutMs = 25000, maxBytes = 8 * 1024 * 1024, a
     clearTimeout(t);
   }
 }
+/** SSRF-gated image download shared by every matching leg. */
+export async function fetchImageGated(rawUrl, { timeoutMs = 15000, maxBytes = 5 * 1024 * 1024 } = {}) {
+  const iu = await assertPublicHttp(rawUrl, "page-image");
+  const { bytes } = await fetchCapped(iu, { accept: ["image/"], maxBytes, timeoutMs });
+  return new Uint8Array(bytes);
+}
 
 function absolutize(src, base) {
   try {
