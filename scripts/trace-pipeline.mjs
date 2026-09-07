@@ -75,7 +75,11 @@ try {
     process.exit(2);
   }
   const investigationId = `tr3-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffffff).toString(16)}`;
-  const chainName = (a.chain ?? "local").toLowerCase();
+  // Chain default: Sepolia when a key is configured (public links on every
+  // success), otherwise local EVM. Explicit --chain always wins.
+  const keyed = (process.env["SEPOLIA_PRIVATE_KEY"] ?? "").trim().length >= 64;
+  const chainName = (a.chain ?? (keyed ? "sepolia" : "local")).toLowerCase();
+  if (!a.chain && keyed) log("chain", "SEPOLIA_PRIVATE_KEY found — anchoring to Sepolia testnet (override with --chain local)");
   banner("live", chainName);
   phase(1, 6, "FACE SCAN INPUT");
   log("input", a.image ?? a["image-url"]);
