@@ -65,9 +65,6 @@ Live Sepolia deployment (Sept 2026, chain 11155111):
 - `evidence/evidence-final.json` — sample verified run
 - `docs/` — ARCHITECTURE, API, SECURITY, PRIVACY, TESTING, LIMITATIONS, DEMO
 
-## Environment
-
-| Variable | Required | Purpose |
 |---|---|---|
 | `EXA_API_KEY` | yes (pipeline) | live web discovery + page evidence |
 | `TRACE_MODE` | no | `demo` for the web app (default) |
@@ -79,3 +76,11 @@ Live Sepolia deployment (Sept 2026, chain 11155111):
 - Local chain is ephemeral per run (restart ganache → new chain); use a persistent testnet for durable anchors.
 - Face embeddings never leave memory; similarity threshold calibrated on portrait photos, not a biometric identity claim.
 - Full list: `docs/LIMITATIONS.md`.
+
+## Credits
+
+ASCII terminal preview: rendered in-repo from decoded pixels with the standard
+luminance-ramp technique; decoders are `jpeg-js` + `pngjs` (both MIT). npm renderers
+were vetted first and rejected on evidence: `image-to-ascii`/`img-to-ascii` need the
+native `lwip2` build (fails on Windows), `ascii-art` needs native `canvas`, and
+`console-image` (MIT, Hugh Kennedy) is browser-only CSS console art.

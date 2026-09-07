@@ -16,6 +16,7 @@ import {
 } from "./lib/local-chain.mjs";
 import { investigationIdHash } from "@trace/shared";
 import { banner, phase, simBar, matchTable, provenanceTree, verdict, failLine } from "./lib/show.mjs";
+import { asciiArt } from "./lib/ascii.mjs";
 
 function args() {
   const out = {};
@@ -88,6 +89,8 @@ try {
   }
   const descriptor = await embedCropReal(PNG.sync.write(crop));
   log("face", `embedding dim=${descriptor.length} (memory-only, never stored on-chain)`);
+  console.log("\n" + asciiArt(decoded.pixels, decoded.width, decoded.height, { box: { x: best.x, y: best.y, w: best.w, h: best.h } }));
+  console.log("  face box tinted above (real BlazeFace coordinates)");
   // 3. WEB DISCOVERY (live Exa neural search)
   phase(3, 6, "WEB DISCOVERY");
   const filename = a.image ? a.image.split(/[/\\]/).pop() : null;
