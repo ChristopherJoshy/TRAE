@@ -15,6 +15,7 @@ import {
   evidenceRecordId,
 } from "./lib/local-chain.mjs";
 import { investigationIdHash } from "@trace/shared";
+import { banner, phase, simBar, matchTable, provenanceTree, verdict, failLine } from "./lib/show.mjs";
 
 function args() {
   const out = {};
@@ -58,9 +59,9 @@ try {
     process.exit(2);
   }
   const investigationId = `tr3-${Date.now().toString(36)}-${Math.floor(Math.random() * 0xffffff).toString(16)}`;
-
-  // 1. FACE SCAN INPUT
-  log("input", a.image ?? a["image-url"]);
+  const chainName = (a.chain ?? "local").toLowerCase();
+  banner("live", chainName);
+  phase(1, 6, "FACE SCAN INPUT");
   const bytes = a.image ? new Uint8Array(readFileSync(a.image)) : await fetchUrlBytes(a["image-url"]);
   const v = validateImage(bytes);
   if (!v.ok) throw new Error(`Invalid image: ${v.error}`);
@@ -70,6 +71,7 @@ try {
   log("ingest", `${decoded.mime} ${decoded.width}x${decoded.height} sha256=${fp.sha256.slice(0, 16)}…`);
 
   // 2. FACE IDENTIFICATION (real BlazeFace + MobileNet embedding)
+  phase(2, 6, "FACE IDENTIFICATION");
   const det = await detectFacesReal(pngBytes);
   faceSvcOpen = true;
   log("face", `${det.faces.length} face(s) in ${det.ms}ms`);
@@ -87,6 +89,7 @@ try {
   const descriptor = await embedCropReal(PNG.sync.write(crop));
   log("face", `embedding dim=${descriptor.length} (memory-only, never stored on-chain)`);
   // 3. WEB DISCOVERY (live Exa neural search)
+  phase(3, 6, "WEB DISCOVERY");
   const filename = a.image ? a.image.split(/[/\\]/).pop() : null;
   const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: [] });
   log("search", `${disc.candidates.length} candidate pages via Exa (${disc.latencyMs}ms): ${disc.queries.join(" | ").slice(0, 120)}`);
@@ -94,16 +97,20 @@ try {
   const pageEvidence = new Map(contents.pages.map((p) => [p.url, p]));
 
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
+  phase(4, 6, "MEASURED MATCHING");
   const confirmed = [];
   const ordered = [...disc.candidates].sort(
     (a, b) => (b.imageLinks?.length ?? 0) - (a.imageLinks?.length ?? 0),
   );
   const maxPages = Math.min(12, Math.max(1, Number(a["max-pages"] ?? 10)));
+  const checkedLines = [];
   for (const cand of ordered.slice(0, maxPages)) {
     try {
       const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks });
       const hits = m.scored.filter((s) => s.match);
-      log("match", `${new URL(cand.url).hostname}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"})`);
+      const host = new URL(cand.url).hostname;
+      log("match", `${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"})`);
+      checkedLines.push(`${host}: ${hits.length}/${m.scored.length} @ best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}`);
       const ev = pageEvidence.get(cand.url);
       for (const h of hits.slice(0, 2)) {
         confirmed.push({
@@ -120,8 +127,10 @@ try {
   confirmed.sort((x, y) => y.similarity - x.similarity);
   const top = confirmed[0];
   log("match", `STRONGEST: ${top.postUrl} similarity=${top.similarity}`);
+  matchTable(confirmed);
 
   // 5. EVIDENCE RECORD + ROOT
+  phase(5, 6, "EVIDENCE SEAL");
   const record = {
     schemaVersion: "trace.task3/v1",
     investigationId,
@@ -137,9 +146,9 @@ try {
   log("seal", `Evidence Root ${evidenceRoot}`);
 
   // 6. BLOCKCHAIN ANCHOR (local EVM by default, Sepolia with --chain sepolia)
+  phase(6, 6, "BLOCKCHAIN ANCHOR");
   const { abi, bytecode } = compileAnchor();
   log("chain", "TraceAnchor.sol compiled with solc");
-  const chainName = (a.chain ?? "local").toLowerCase();
   const isSepolia = chainName === "sepolia";
   if (isSepolia) {
     const { SEPOLIA, connectExternalChain } = await import("./lib/local-chain.mjs");
@@ -188,11 +197,21 @@ try {
   };
   const outPath = a.out ?? `evidence-${investigationId}.json`;
   writeFileSync(outPath, JSON.stringify(out, null, 2));
-  console.log(`\nDONE in ${Date.now() - t0}ms → ${outPath}`);
-  console.log(`MATCH: ${top.postTitle ?? top.postUrl}\n  ${top.postUrl}\nROOT: ${evidenceRoot}\nCHAIN: ${address} tx ${anchored.txHash}`);
+  const topHost = (() => { try { return new URL(top.postUrl).hostname; } catch { return top.postUrl; } })();
+  provenanceTree({
+    faces: det.faces.length, faceScore: best.score.toFixed(3), faceMs: det.ms ?? 0, embDim: descriptor.length,
+    candidates: disc.candidates.length, searchMs: disc.latencyMs,
+    checkedLines,
+    topHost, topSim: top.similarity,
+    root: evidenceRoot,
+    chainKind: isSepolia ? "sepolia-testnet" : "local-evm", chainId: isSepolia ? 11155111 : 1337,
+    contract: address, deployBlock, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
+    exists: check.exists, anchored: check.anchored, events: check.eventCount,
+  });
+  verdict(true, Date.now() - t0, outPath);
 } catch (e) {
-  console.error(`\nFAILED [${e.code ?? "error"}]: ${e.message}`);
-  process.exitCode = 1;
+  failLine(e.code, e instanceof Error ? e.message : String(e));
+  verdict(false, Date.now() - t0, "");
 } finally {
   if (faceSvcOpen) await closeFaceService().catch(() => null);
   if (chain) await chain.stop().catch(() => null);
