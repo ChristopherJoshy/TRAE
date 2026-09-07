@@ -335,6 +335,10 @@ try {
     console.log("  Verify this anchor yourself (no key needed):");
     console.log(`  contract: https://sepolia.etherscan.io/address/${address}#code`);
     console.log(`  anchor tx:  https://sepolia.etherscan.io/tx/${anchored.txHash}`);
+  } else {
+    console.log("  Verify this anchor yourself (local chain has no public explorer):");
+    console.log(`  contract ${address} (block ${deployBlock}) · anchor tx ${anchored.txHash} (block ${anchored.blockNumber})`);
+    console.log(`  node scripts/verify-evidence.mjs --evidence ${outPath}`);
   }
 } catch (e) {
   failLine(e.code, e instanceof Error ? e.message : String(e));
