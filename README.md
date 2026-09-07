@@ -68,7 +68,7 @@ re-verify any time via `verify-evidence --onchain`); for durable anchors, point 
 contract at mainnet.
 Live Sepolia deployment (Sept 2026, chain 11155111):
 
-- Contract: https://sepolia.etherscan.io/address/0x122350c73ff0a63a1d7271a411040cc79417feab#code
+- Contract: https://sepolia.etherscan.io/address/0x122350c73ff0a63a1d7271a411040cc79417feab#readContract
 - Anchor tx: https://sepolia.etherscan.io/tx/0x8001582f24e40b02fc58d31a3bf166cdacd231c9d345b62ecbdd31e9698a79b9
 - Evidence: `evidence/evidence-sepolia.json` (`verify-evidence --evidence … [--onchain]`).
 - `fixtures/` — `real/` portraits (Unsplash, freely usable) + synthetic hash-test images

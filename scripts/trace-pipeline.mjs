@@ -312,7 +312,8 @@ try {
     chain: {
       kind: isSepolia ? "sepolia-testnet" : "local-evm",
       rpcUrl: safeRpc, chainId: isSepolia ? 11155111 : 1337,
-      explorer: isSepolia ? `https://sepolia.etherscan.io/address/${address}#code` : null,
+      explorer: isSepolia ? `https://sepolia.etherscan.io/address/${address}#readContract` : null,
+      verifyUrl: isSepolia ? `https://sepolia.etherscan.io/tx/${anchored.txHash}` : null,
       contractAddress: address, deployTx, deployBlock, anchorTx: anchored.txHash, anchorBlock: anchored.blockNumber,
       verification: check,
     },
@@ -333,8 +334,8 @@ try {
   verdict(true, Date.now() - t0, outPath);
   if (isSepolia) {
     console.log("  Verify this anchor yourself (no key needed):");
-    console.log(`  contract: https://sepolia.etherscan.io/address/${address}#code`);
-    console.log(`  anchor tx:  https://sepolia.etherscan.io/tx/${anchored.txHash}`);
+    console.log(`  contract: https://sepolia.etherscan.io/address/${address}#readContract   ← open, expand getAnchor, paste the root`);
+    console.log(`  anchor tx:  https://sepolia.etherscan.io/tx/${anchored.txHash}   ← Logs tab shows the EvidenceAnchored event`);
   } else {
     console.log("  Verify this anchor yourself (local chain has no public explorer):");
     console.log(`  contract ${address} (block ${deployBlock}) · anchor tx ${anchored.txHash} (block ${anchored.blockNumber})`);

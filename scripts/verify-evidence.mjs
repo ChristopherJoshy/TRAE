@@ -62,7 +62,7 @@ if (argv.includes("--onchain")) {
     });
     const idOk = String(check.storedIdHash).toLowerCase() === String(storedIdHash).toLowerCase();
     console.log(`ON-CHAIN: exists=${check.exists} anchored=${check.anchored} events=${check.eventCount} idHashMatch=${idOk}`);
-    console.log(`ON-CHAIN: https://sepolia.etherscan.io/address/${chain.contractAddress}#code`);
+    console.log(`ON-CHAIN: https://sepolia.etherscan.io/address/${chain.contractAddress}#readContract`);
     if (check.exists && check.anchored && check.eventCount > 0 && idOk && actual === evidenceRoot) {
       console.log("ON-CHAIN RE-VERIFIED — live chain state matches the sealed bundle");
     } else {
