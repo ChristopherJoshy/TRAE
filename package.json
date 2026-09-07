@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "trace": "node scripts/trace-pipeline.mjs",
+    "trae": "node scripts/trace-pipeline.mjs",
     "verify-evidence": "node scripts/verify-evidence.mjs",
     "dev": "npm run dev --workspace apps/web",
     "build": "npm run build --workspace apps/web",
