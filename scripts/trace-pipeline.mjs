@@ -100,14 +100,33 @@ try {
   console.log("\n" + asciiArt(decoded.pixels, decoded.width, decoded.height, { box: { x: best.x, y: best.y, w: best.w, h: best.h } }));
   console.log("  face box tinted above (real BlazeFace coordinates)");
   // 3. WEB DISCOVERY (live Exa neural search)
-  phase(3, 6, "WEB DISCOVERY");
   const filename = a.image ? a.image.split(/[/\\]/).pop() : null;
   const exaSp = spin("querying Exa neural search…");
   const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: [] });
-  exaSp.text = `extracting page evidence for ${disc.candidates.length} candidates…`;
+  // Authoritative identity resolution: GitHub avatar URLs map 1:1 to an
+  // account via the free official API. Injected first, still verified by
+  // byte-level matching like every other candidate — never trusted blindly.
+  if (a["image-url"]) {
+    try {
+      const { resolveGithubAvatar } = await import("./lib/github-resolve.mjs");
+      const gh = await resolveGithubAvatar(a["image-url"]);
+      if (gh && !disc.candidates.some((c) => c.url === gh.profileUrl)) {
+        disc.candidates.unshift({
+          url: gh.profileUrl,
+          title: `@${gh.login} — GitHub profile (avatar ID ${gh.id} resolved via api.github.com)`,
+          publishedDate: null, author: gh.login, score: null,
+          query: "github-id-resolve", highlights: [],
+          imageLinks: [gh.avatarUrl],
+        });
+        log("search", `avatar resolved: ${gh.profileUrl} (@${gh.login})`);
+      }
+    } catch (e) {
+      log("search", `avatar resolution skipped (${e.code ?? "error"})`);
+    }
+  }
   const contents = await exaContents(disc.candidates.map((c) => c.url));
   exaSp.succeed(`${disc.candidates.length} candidate pages (${disc.latencyMs}ms search)`);
-  log("search", `queries: ${disc.queries.join(" | ").slice(0, 160)}`);
+  log("search", `queries: ${disc.queries.join(" | ").slice(0, 160)}${disc.platformNote ? ` + ${disc.platformNote}` : ""}`);
   const pageEvidence = new Map(contents.pages.map((p) => [p.url, p]));
 
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
@@ -125,10 +144,11 @@ try {
     const host = (() => { try { return new URL(cand.url).hostname; } catch { return cand.url; } })();
     matchSp.text = `[${pi + 1}/${pages.length}] ${host}…`;
     try {
-      const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks });
+      const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks, faceRef: { descriptor, score: best.score } });
       const hits = m.scored.filter((s) => s.match);
-      log("match", `${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"})`);
-      checkedLines.push(`${host}: ${hits.length}/${m.scored.length} @ best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}`);
+      const fv = hits.filter((s) => s.via === "face-verified").length;
+      log("match", `${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}${fv > 0 ? `, ${fv} face-verified` : ""})`);
+      checkedLines.push(`${host}: ${hits.length}/${m.scored.length} @ best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}${fv > 0 ? " (face-verified)" : ""}`);
       for (const s of m.scored) allScored.push({ ...s, pageUrl: cand.url });
       const ev = pageEvidence.get(cand.url);
       for (const h of hits.slice(0, 2)) {
@@ -136,6 +156,7 @@ try {
           postUrl: cand.url, postTitle: ev?.title ?? cand.title,
           publishedDate: ev?.publishedDate ?? cand.publishedDate, author: ev?.author ?? cand.author,
           imageUrl: h.imageUrl, similarity: Math.round(h.similarity * 1000) / 1000,
+          via: h.via, faceCos: h.faceCos ?? null,
         });
       }
     } catch (e) {

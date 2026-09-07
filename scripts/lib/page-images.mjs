@@ -75,22 +75,28 @@ export function extractImageUrls(html, base) {
     const abs = absolutize(s.split(" ")[0], base);
     if (abs && !found.includes(abs)) found.push(abs);
   };
-  const pushFront = (s) => {
+  // Primary images first — usually the article/post visual. Meta-declared
+  // images bypass the extension filter: avatar/CDN endpoints (e.g.
+  // avatars.githubusercontent.com/u/…) often carry no file extension.
+  const meta = [];
+  const pushMeta = (s) => {
     if (!s) return;
     const abs = absolutize(s.split(" ")[0], base);
-    if (abs && !found.includes(abs)) found.unshift(abs);
+    if (abs && !meta.includes(abs) && !found.includes(abs)) meta.unshift(abs);
   };
-  // Primary image first — usually the article/post visual.
-  for (const m of html.matchAll(/<meta[^>]+property\s*=\s*["']og:image["'][^>]+content\s*=\s*["']([^"']+)["']/gi)) pushFront(m[1]);
-  for (const m of html.matchAll(/<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+property\s*=\s*["']og:image["']/gi)) pushFront(m[1]);
+  for (const m of html.matchAll(/<meta[^>]+property\s*=\s*["']og:image["'][^>]+content\s*=\s*["']([^"']+)["']/gi)) pushMeta(m[1]);
+  for (const m of html.matchAll(/<meta[^>]+content\s*=\s*["']([^"']+)["'][^>]+property\s*=\s*["']og:image["']/gi)) pushMeta(m[1]);
+  for (const m of html.matchAll(/<meta[^>]+(?:property|name)\s*=\s*["']twitter:image(?::src)?["'][^>]+content\s*=\s*["']([^"']+)["']/gi)) pushMeta(m[1]);
+  for (const m of html.matchAll(/<link[^>]+rel\s*=\s*["']image_src["'][^>]+href\s*=\s*["']([^"']+)["']/gi)) pushMeta(m[1]);
   for (const m of html.matchAll(/<img[^>]+src\s*=\s*["']([^"']+)["']/gi)) push(m[1]);
   for (const m of html.matchAll(/<img[^>]+(?:data-src|data-lazy-src|data-original)\s*=\s*["']([^"']+)["']/gi)) push(m[1]);
   for (const m of html.matchAll(/<img[^>]+srcset\s*=\s*["']([^"']+)["']/gi)) {
     for (const part of m[1].split(",")) push(part.trim());
   }
-  return found.filter((u) => /\.(jpe?g|png|webp)(\?|#|$)/i.test(u)).slice(0, 12);
+  const withExt = found.filter((u) => /\.(jpe?g|png|webp)(\?|#|$)/i.test(u));
+  return [...meta, ...withExt].slice(0, 12);
 }
-export async function matchPageImages(pageUrl, inputDecoded, { threshold = 0.6, perImageTimeoutMs = 12000, maxImages = 5, imageLinks = [] } = {}) {
+export async function matchPageImages(pageUrl, inputDecoded, { threshold = 0.6, perImageTimeoutMs = 12000, maxImages = 5, imageLinks = [], faceRef = null, faceBandLo = 0.40, faceThreshold = 0.75 } = {}) {
   const seeded = [...new Set((imageLinks ?? []).filter((u) => typeof u === "string" && /^https?:\/\//.test(u)))].slice(0, maxImages);
   let imgUrls = seeded;
   if (imgUrls.length === 0) {
@@ -106,13 +112,58 @@ export async function matchPageImages(pageUrl, inputDecoded, { threshold = 0.6, 
       const { bytes: ib } = await fetchCapped(iu, { accept: ["image/"], maxBytes: 5 * 1024 * 1024, timeoutMs: perImageTimeoutMs });
       const dec = decodeImage(ib);
       const sim = robustSimilarity(inputDecoded, dec);
-      scored.push({ imageUrl: imgUrl, width: dec.width, height: dec.height, similarity: sim, match: sim >= threshold });
+      let faceCos = null;
+      let via = "visual";
+      let match = sim >= threshold;
+      // Face-verified band: mid visual similarity + same measured face.
+      // Calibrated: same face cross-copy 0.883, different people 0.413.
+      if (!match && faceRef && faceRef.score >= 0.5 && sim >= faceBandLo && sim < threshold) {
+        faceCos = await faceCosineVsRef(dec, faceRef.descriptor);
+        if (faceCos !== null && faceCos >= faceThreshold) {
+          match = true;
+          via = "face-verified";
+        }
+      }
+      scored.push({ imageUrl: imgUrl, width: dec.width, height: dec.height, similarity: sim, faceCos, via, match });
     } catch (e) {
-      scored.push({ imageUrl: imgUrl, error: e.code ?? "download-failed", similarity: 0, match: false });
+      scored.push({ imageUrl: imgUrl, error: e.code ?? "download-failed", similarity: 0, faceCos: null, via: "visual", match: false });
     }
   }
   scored.sort((a, b) => b.similarity - a.similarity);
   return { pageUrl, imageCount: imgUrls.length, scored, threshold };
+}
+
+function cosine(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i];
+  }
+  return na > 0 && nb > 0 ? dot / Math.sqrt(na * nb) : 0;
+}
+
+async function faceCosineVsRef(dec, refDescriptor) {
+  const { detectFacesReal, embedCropReal } = await import("./mp-faces.mjs");
+  const { PNG } = await import("pngjs");
+  const full = new PNG({ width: dec.width, height: dec.height });
+  Buffer.from(dec.pixels).copy(full.data);
+  const det = await detectFacesReal(PNG.sync.write(full));
+  const faces = (det.faces ?? []).filter((f) => f.score >= 0.5).sort((x, y) => y.w * y.h - x.w * x.h);
+  if (faces.length === 0) return null;
+  const f = faces[0];
+  const x0 = Math.max(0, f.x), y0 = Math.max(0, f.y);
+  const w = Math.min(dec.width - x0, f.w), h = Math.min(dec.height - y0, f.h);
+  if (w < 16 || h < 16) return null;
+  const crop = new PNG({ width: w, height: h });
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const si = ((y0 + y) * dec.width + x0 + x) * 4, di = (y * w + x) * 4;
+      crop.data[di] = dec.pixels[si]; crop.data[di + 1] = dec.pixels[si + 1];
+      crop.data[di + 2] = dec.pixels[si + 2]; crop.data[di + 3] = 255;
+    }
+  }
+  const emb = await embedCropReal(PNG.sync.write(crop));
+  if (!emb || emb.length === 0) return null;
+  return Math.round(cosine(emb, refDescriptor) * 1000) / 1000;
 }
 
 export { decodeImage, fingerprintImage };

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "trace.task3/v1",
+  "investigationId": "tr3-mtqrq12u-f3d0",
+  "createdAt": "2026-09-07T04:56:41.340Z",
+  "input": {
+    "sha256": "c583b9830c1fe1a6ab5ae147f6b72d6a656893a9e76dec3ded2e373c68006faa",
+    "mime": "image/jpeg",
+    "width": 460,
+    "height": 460,
+    "face": {
+      "box": {
+        "x": 171,
+        "y": 105,
+        "w": 132,
+        "h": 132
+      },
+      "detectorScore": 0.956,
+      "detector": "mediapipe-blazeface",
+      "embedder": "mobilenet_v3-image-embedder/face-crop"
+    }
+  },
+  "discovery": {
+    "provider": "exa",
+    "queries": [
+      "web pages containing this image https://avatars.githubusercontent.com/u/141357296?v=4",
+      "\"141357296\""
+    ],
+    "latencyMs": 1357,
+    "candidatesChecked": 13
+  },
+  "matches": [
+    {
+      "postUrl": "https://github.com/iamkarthik2004",
+      "postTitle": "Karthik Krishnan",
+      "publishedDate": null,
+      "author": "iamkarthik2004",
+      "imageUrl": "https://avatars.githubusercontent.com/u/141357296?v=4",
+      "similarity": 1,
+      "via": "visual",
+      "faceCos": null
+    }
+  ],
+  "evidenceRoot": "0xda7b622a008ca903e2e80c8bb256cde6dd283352f1ed9bc0aa284b06c65568a1",
+  "faceDescriptorCosineSelfCheck": 1,
+  "chain": {
+    "kind": "local-evm",
+    "rpcUrl": "http://127.0.0.1:8545",
+    "chainId": 1337,
+    "explorer": null,
+    "contractAddress": "0x8cdaf0cd259887258bc13a92c0a6da92698644c0",
+    "deployTx": "0xd1262e2fce43879d54ebec95d87d5a968703644bca05414504c6713ef833d172",
+    "anchorTx": "0x86400eda15788f23e8bcdbd5ff80ac13e52c725c1bd6deb35c51e6e3929328d2",
+    "anchorBlock": 2,
+    "verification": {
+      "exists": true,
+      "anchored": true,
+      "storedIdHash": "0xaf0d7f5c9832330695ce3f14e6e111536df8bffaf9711085a961fdf29ad9ab97",
+      "storedTimestamp": "1788757002",
+      "storedSchema": "trace.task3/v1",
+      "eventCount": 1,
+      "match": true
+    }
+  }
+}

@@ -61,8 +61,12 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
   if (filename) queries.push(`"${filename}" portrait photo source`);
   for (const h of hints.slice(0, 2)) queries.push(h);
   if (queries.length === 0) queries.push("portrait photo source page");
+  // Platform-targeted pass (explicitly requested coverage): the same ID
+  // tokens scoped to social/profile networks via an explicit domain list.
+  const PLATFORMS = ["github.com", "instagram.com", "x.com", "linkedin.com"];
   const seen = new Map();
   let latencyMs = 0;
+  let platformNote = null;
   for (const q of queries.slice(0, 3)) {
     const { json, latencyMs: ms } = await call("/search", { query: q, contents: { highlights: true, extras: { imageLinks: 5 } } });
     latencyMs += ms;
@@ -85,7 +89,37 @@ export async function exaDiscover({ imageUrl = null, filename = null, hints = []
       }
     }
   }
-  return { queries, latencyMs, candidates: [...seen.values()].slice(0, 15) };
+  const idTokens = queries.filter((q) => q.startsWith('"')).slice(0, 2);
+  if (idTokens.length > 0) {
+    try {
+      const pq = `${idTokens.join(" ")} profile avatar photo`;
+      const { json, latencyMs: ms } = await call("/search", {
+        query: pq, includeDomains: PLATFORMS,
+        contents: { highlights: true, extras: { imageLinks: 5 } },
+      });
+      latencyMs += ms;
+      platformNote = `platform pass (${PLATFORMS.join(", ")})`;
+      for (const r of json.results ?? []) {
+        if (!r.url || !r.url.startsWith("http") || seen.has(r.url)) continue;
+        const extraLinks = Array.isArray(r.extras?.imageLinks)
+          ? r.extras.imageLinks.filter((u) => typeof u === "string")
+          : [];
+        const seeded = [
+          ...(typeof r.image === "string" ? [r.image] : []),
+          ...extraLinks,
+        ].filter((u) => /^https?:\/\//.test(u)).slice(0, 6);
+        seen.set(r.url, {
+          url: r.url, title: r.title ?? null, publishedDate: r.publishedDate ?? null,
+          author: r.author ?? null, score: r.score ?? null, query: `${pq} [platforms]`,
+          highlights: (r.highlights ?? []).slice(0, 3),
+          imageLinks: seeded,
+        });
+      }
+    } catch (e) {
+      platformNote = `platform pass skipped (${e.code ?? "error"})`;
+    }
+  }
+  return { queries, latencyMs, platformNote, candidates: [...seen.values()].slice(0, 15) };
 }
 
 /** Pull real page evidence for discovered URLs. */

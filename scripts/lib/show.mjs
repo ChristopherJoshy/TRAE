@@ -56,9 +56,9 @@ function hostOf(url) {
  */
 export function matchTable(confirmed, runnersUp = []) {
   console.log(chalk.bold("\n  ★ CONFIRMED MATCHES (≥ 0.72, measured)"));
-  console.log(chalk.dim("  ────────────────────────────────────────────────────────────"));
   confirmed.slice(0, 5).forEach((m, i) => {
-    console.log(`  ${chalk.yellow(`#${i + 1}`)} ${simBar(m.similarity)}  ${chalk.bold(hostOf(m.postUrl))}`);
+    const via = m.via === "face-verified" ? chalk.green(" ✓face") + chalk.dim(` ${m.faceCos ?? ""}`) : chalk.dim(" ◉visual");
+    console.log(`  ${chalk.yellow(`#${i + 1}`)} ${simBar(m.similarity)}  ${chalk.bold(hostOf(m.postUrl))}${via}`);
     console.log(`     ${chalk.dim((m.postTitle ?? "").slice(0, 72))}`);
     console.log(`     ${chalk.dim(m.postUrl.slice(0, 88))}`);
     console.log(`     ${chalk.dim("image: " + (m.imageUrl ?? "").slice(0, 88))}`);
