@@ -55,6 +55,12 @@ let chain = null;
 try {
   loadEnvFile();
   const a = args();
+  // Forgiving input: a URL passed as --image is treated as --image-url.
+  if (typeof a.image === "string" && /^https?:\/\//i.test(a.image.trim()) && !a["image-url"]) {
+    a["image-url"] = a.image.trim();
+    delete a.image;
+    log("input", "URL detected in --image, routing to URL fetch");
+  }
   if (!a.image && !a["image-url"]) {
     console.error("Usage: node scripts/trace-pipeline.mjs --image <path> [--image-url <url>] [--out evidence.json] [--port 8545] [--chain local|sepolia]");
     process.exit(2);
@@ -63,6 +69,7 @@ try {
   const chainName = (a.chain ?? "local").toLowerCase();
   banner("live", chainName);
   phase(1, 6, "FACE SCAN INPUT");
+  log("input", a.image ?? a["image-url"]);
   const bytes = a.image ? new Uint8Array(readFileSync(a.image)) : await fetchUrlBytes(a["image-url"]);
   const v = validateImage(bytes);
   if (!v.ok) throw new Error(`Invalid image: ${v.error}`);
