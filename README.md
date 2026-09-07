@@ -1,10 +1,31 @@
-# TRACE-3 — Don't trust the image. Trace it.
+<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,9,12,19&height=200&section=header&text=TRACE-3&fontSize=72&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Don%27t%20trust%20the%20image.%20Trace%20it.&descAlignY=58&descSize=20" alt="TRACE-3 — Don't trust the image. Trace it."/>
 
-**HH Goa 2026 · Shortlisting Task 3: Face Identification & Blockchain Verification.**
+<div align="center">
+
+[![Typing](https://readme-typing-svg.herokuapp.com?font=Fira+Code&size=22&pause=1200&color=2DD4BF&center=true&vCenter=true&width=760&lines=Face+scan+%E2%86%92+web+match+%E2%86%92+blockchain+proof;No+match%3F+No+story.+It+stops+instead.)](https://github.com/ChristopherJoshy/TRAE)
+
+[![CI](https://github.com/ChristopherJoshy/TRAE/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherJoshy/TRAE/actions)
+[![Node](https://img.shields.io/badge/node-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=nextdotjs&logoColor=white)](apps/web)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.24-363636?logo=solidity&logoColor=white)](contracts/TraceAnchor.sol)
+[![Sepolia](https://img.shields.io/badge/Sepolia-anchor_live-627EEA?logo=ethereum&logoColor=white)](https://sepolia.etherscan.io/address/0x2409511ac5650ac3ff620dd0dc1345d658ee4401#readContract)
+[![Demo](https://img.shields.io/badge/demo-60_seconds-2DD4BF)](#-quick-start)
+[![Deps](https://img.shields.io/badge/deps-pure_JS,_no_native_builds-f59e0b)](#-known-limitations-short-version--full-text-in-docslimitationsmd)
+
+**HH Goa 2026 · Shortlisting Task 3: Face Identification & Blockchain Verification**
 
 Give TRACE a face scan. It finds genuinely matching web/social posts, seals the evidence with a
 SHA-256 fingerprint, anchors that fingerprint on an Ethereum chain, and re-verifies it on-chain.
-If it can't confirm a real match, it says so and stops — it never invents results.
+If it can't confirm a real match, it says so and stops — **it never invents results**.
+
+[![Tech](https://skillicons.dev/icons?i=ts,nextjs,nodejs,solidity&theme=dark)](https://github.com/ChristopherJoshy/TRAE)
+
+</div>
+
+<div align="center">
+<img width="85%" src="docs/images/demo-match.gif" alt="Live match review — candidate portrait with face-box overlay"/>
+<br/><em>◉ live match review — the 0.992 portrait, face-box overlaid, straight from the demo film ↓</em>
+</div>
 
 ![TRACE home page — start an investigation, pick a demo case, run](docs/images/01-home.png)
 
@@ -167,7 +188,7 @@ caption track). The file lives under gitignored `media/` (video never enters git
 minutes."* Sets the contract with the viewer: everything that follows is a real execution, not
 slides. The pipeline is already running in the terminal behind the card.
 
-![0:15 — candidate portrait under review with face-box overlay](docs/images/video-02-portrait.png)
+<img width="85%" src="docs/images/demo-match.gif" alt="0:15 — candidate portrait under review, face-box overlaid, live"/>
 
 **0:11 — The candidate.** *"Our confirmed match at zero point nine nine two similarity, face box
 overlaid."* The matching post's portrait fills the browser: same woman in red, yellow dashed
@@ -188,14 +209,14 @@ submitted to the Sepolia testnet."* The verdict lines land here: `STRONGEST` mat
 the `0x1313…` Evidence Root, contract deployment (block 11653011) and anchor transaction
 (block 11653012). This is the moment raw output becomes a commitment.
 
-![1:20 — seal and anchor stages complete](docs/images/video-05-reverify.png)
+<img width="85%" src="docs/images/demo-seal.gif" alt="1:20 — seal and anchor stages closing out in the terminal, live"/>
 
 **1:11 — Re-verification.** *"Contract state, event log, and evidence root all agree. Match equals
 true."* Phases [5/6] seal and [6/6] anchor close out on screen: `getAnchor`/`verifyAnchor` reads plus
 the `EvidenceAnchored` event count. TRACE doesn't trust its own write — it reads the chain back
 before declaring success.
 
-![1:34 — Sepolia Etherscan: anchor transaction, Status Success](docs/images/video-06-etherscan.png)
+<img width="85%" src="docs/images/demo-etherscan.gif" alt="1:34 — Sepolia Etherscan anchor transaction, Status Success, live"/>
 
 **1:34 — Independent proof.** *"Sepolia Etherscan: Status Success. Evidence anchored and verified."*
 The film ends where trust comes from: not our terminal, but Etherscan's Transaction Details page —
@@ -278,7 +299,8 @@ point the same contract at mainnet.
 
 ---
 
-## Project map
+<details>
+<summary>📁 <b>Project map</b> — click to expand</summary>
 
 | Path | What lives there |
 |------|------------------|
@@ -291,6 +313,8 @@ point the same contract at mainnet.
 | `fixtures/` | `real/` Unsplash portraits (freely usable) + synthetic hash-test images; `models/` BlazeFace + MobileNet `.tflite` |
 | `evidence/` | Committed sample runs (`evidence-sepolia.json` …) |
 | `docs/` | ARCHITECTURE · API · SECURITY · PRIVACY · TESTING · LIMITATIONS · DEMO (+ `images/` screenshots) |
+</details>
+
 
 ---
 
@@ -335,3 +359,10 @@ Requires Node 20+ (CI runs 22), npm 11 workspaces. Gates in order:
   `canvas`), `console-image` (browser-only).
 - Vision models: MediaPipe BlazeFace + MobileNetV3 (`.tflite` in `models/`).
 - Chain: `ganache` + `solc` + `viem`; contract targets Sepolia testnet, EVM version Paris.
+
+---
+
+<div align="center">
+<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,9,12,19&height=120&section=footer" alt="footer wave"/>
+<sub>TRACE-3 · HH Goa 2026 · evidence, not truth · <a href="#readme">back to top ↑</a></sub>
+</div>
