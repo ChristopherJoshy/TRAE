@@ -8,3 +8,6 @@ data/
 *.local
 playwright-report/
 test-results/
+
+# local pipeline run outputs (committed samples live in evidence/)
+/evidence-*.json

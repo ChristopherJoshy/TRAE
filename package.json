@@ -23,5 +23,10 @@
   "devDependencies": {
     "ganache": "^7.9.2",
     "solc": "^0.8.36"
+  },
+  "dependencies": {
+    "chalk": "^6.0.0",
+    "figlet": "^1.11.4",
+    "ora": "^9.4.1"
   }
 }

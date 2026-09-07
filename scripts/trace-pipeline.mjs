@@ -15,7 +15,7 @@ import {
   evidenceRecordId,
 } from "./lib/local-chain.mjs";
 import { investigationIdHash } from "@trace/shared";
-import { banner, phase, simBar, matchTable, provenanceTree, verdict, failLine } from "./lib/show.mjs";
+import { banner, phase, simBar, matchTable, provenanceTree, verdict, failLine, spin } from "./lib/show.mjs";
 import { asciiArt } from "./lib/ascii.mjs";
 
 function args() {
@@ -73,10 +73,11 @@ try {
 
   // 2. FACE IDENTIFICATION (real BlazeFace + MobileNet embedding)
   phase(2, 6, "FACE IDENTIFICATION");
+  const faceSp = spin("warming up BlazeFace service…");
   const det = await detectFacesReal(pngBytes);
   faceSvcOpen = true;
-  log("face", `${det.faces.length} face(s) in ${det.ms}ms`);
-  if (det.faces.length === 0) throw new Error("No face detected in the input scan — cannot identify.");
+  faceSp.text = `encoding ${det.faces.length} face crop(s)…`;
+  if (det.faces.length === 0) { faceSp.stop(); throw new Error("No face detected in the input scan — cannot identify."); }
   const best = det.faces.sort((x, y) => y.w * y.h - x.w * x.h)[0];
   log("face", `largest box x=${best.x} y=${best.y} ${best.w}x${best.h} score=${best.score.toFixed(3)}`);
   const cx = Math.max(0, best.x), cy = Math.max(0, best.y);
@@ -88,32 +89,40 @@ try {
     crop.data[di + 2] = decoded.pixels[si + 2]; crop.data[di + 3] = 255;
   }
   const descriptor = await embedCropReal(PNG.sync.write(crop));
-  log("face", `embedding dim=${descriptor.length} (memory-only, never stored on-chain)`);
+  faceSp.succeed(`${det.faces.length} face(s), best ${best.score.toFixed(3)}, ${descriptor.length}-dim (memory-only, never stored)`);
   console.log("\n" + asciiArt(decoded.pixels, decoded.width, decoded.height, { box: { x: best.x, y: best.y, w: best.w, h: best.h } }));
   console.log("  face box tinted above (real BlazeFace coordinates)");
   // 3. WEB DISCOVERY (live Exa neural search)
   phase(3, 6, "WEB DISCOVERY");
   const filename = a.image ? a.image.split(/[/\\]/).pop() : null;
+  const exaSp = spin("querying Exa neural search…");
   const disc = await exaDiscover({ imageUrl: a["image-url"] ?? null, filename, hints: [] });
-  log("search", `${disc.candidates.length} candidate pages via Exa (${disc.latencyMs}ms): ${disc.queries.join(" | ").slice(0, 120)}`);
+  exaSp.text = `extracting page evidence for ${disc.candidates.length} candidates…`;
   const contents = await exaContents(disc.candidates.map((c) => c.url));
+  exaSp.succeed(`${disc.candidates.length} candidate pages (${disc.latencyMs}ms search)`);
+  log("search", `queries: ${disc.queries.join(" | ").slice(0, 160)}`);
   const pageEvidence = new Map(contents.pages.map((p) => [p.url, p]));
 
   // 4. MEASURED MATCHING (download page images, hash-compare vs input)
   phase(4, 6, "MEASURED MATCHING");
   const confirmed = [];
   const ordered = [...disc.candidates].sort(
-    (a, b) => (b.imageLinks?.length ?? 0) - (a.imageLinks?.length ?? 0),
+    (x, y) => (y.imageLinks?.length ?? 0) - (x.imageLinks?.length ?? 0),
   );
   const maxPages = Math.min(12, Math.max(1, Number(a["max-pages"] ?? 10)));
   const checkedLines = [];
-  for (const cand of ordered.slice(0, maxPages)) {
+  const allScored = [];
+  const pages = ordered.slice(0, maxPages);
+  const matchSp = spin(`matching page images…`);
+  for (const [pi, cand] of pages.entries()) {
+    const host = (() => { try { return new URL(cand.url).hostname; } catch { return cand.url; } })();
+    matchSp.text = `[${pi + 1}/${pages.length}] ${host}…`;
     try {
       const m = await matchPageImages(cand.url, decoded, { threshold: 0.72, imageLinks: cand.imageLinks });
       const hits = m.scored.filter((s) => s.match);
-      const host = new URL(cand.url).hostname;
       log("match", `${host}: ${hits.length}/${m.scored.length} images match (best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"})`);
       checkedLines.push(`${host}: ${hits.length}/${m.scored.length} @ best ${m.scored[0]?.similarity?.toFixed(3) ?? "n/a"}`);
+      for (const s of m.scored) allScored.push({ ...s, pageUrl: cand.url });
       const ev = pageEvidence.get(cand.url);
       for (const h of hits.slice(0, 2)) {
         confirmed.push({
@@ -124,13 +133,19 @@ try {
       }
     } catch (e) {
       log("match", `${cand.url.slice(0, 60)}: skipped (${e.code ?? "error"})`);
+      checkedLines.push(`${host}: skipped (${e.code ?? "error"})`);
     }
   }
-  if (confirmed.length === 0) throw new Error("No matching post confirmed — pipeline stops rather than inventing one.");
+  if (confirmed.length === 0) { matchSp.stop(); throw new Error("No matching post confirmed — pipeline stops rather than inventing one."); }
   confirmed.sort((x, y) => y.similarity - x.similarity);
   const top = confirmed[0];
+  matchSp.succeed(`${confirmed.length} confirmed, best ${top.similarity} (${pages.length} pages)`);
   log("match", `STRONGEST: ${top.postUrl} similarity=${top.similarity}`);
-  matchTable(confirmed);
+  const runners = allScored
+    .filter((s) => !s.match && s.similarity > 0)
+    .sort((x, y) => y.similarity - x.similarity)
+    .slice(0, 3);
+  matchTable(confirmed, runners);
 
   // 5. EVIDENCE RECORD + ROOT
   phase(5, 6, "EVIDENCE SEAL");
@@ -166,8 +181,9 @@ try {
   } else {
     chain = await startLocalChain(Number(a.port ?? 8545));
   }
+  const chainSp = spin("deploying TraceAnchor contract…");
   const { address, deployTx, blockNumber: deployBlock } = await deployAnchor(chain.publicClient, chain.walletClient, chain.account, { abi, bytecode });
-  log("chain", `deployed ${address} in tx ${deployTx.slice(0, 18)}… (block ${deployBlock})`);
+  chainSp.text = `anchoring root ${evidenceRoot.slice(0, 18)}…`;
   const payload = {
     evidenceRoot,
     investigationIdHash: investigationIdHash(investigationId),
@@ -175,7 +191,8 @@ try {
     appVersion: "0.1.0",
   };
   const anchored = await anchorOnChain(chain.publicClient, chain.walletClient, chain.account, address, abi, payload);
-  log("chain", `anchored tx ${anchored.txHash.slice(0, 18)}… block ${anchored.blockNumber}`);
+  chainSp.succeed(`anchored tx ${anchored.txHash.slice(0, 18)}… (block ${anchored.blockNumber})`);
+  log("chain", `deployed ${address} (block ${deployBlock})`);
 
   // 7. RE-VERIFICATION against chain state (events scoped to deploy block:
   // free-tier RPCs cap eth_getLogs ranges)

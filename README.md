@@ -84,3 +84,8 @@ luminance-ramp technique; decoders are `jpeg-js` + `pngjs` (both MIT). npm rende
 were vetted first and rejected on evidence: `image-to-ascii`/`img-to-ascii` need the
 native `lwip2` build (fails on Windows), `ascii-art` needs native `canvas`, and
 `console-image` (MIT, Hugh Kennedy) is browser-only CSS console art.
+Hi-res mode uses the half-block truecolor method of `timg` (hzeller/timg, GPL-2.0),
+`chafa` (hpjansson/chafa, LGPL-3.0) and `pixterm` (eliukblau/pixterm, MIT) — original
+implementation, technique credit to those projects.
+Terminal UI: `figlet` + `chalk` + `ora` (all MIT). Every animated/persisted number is
+measured at runtime; spinners show live state only, never synthetic progress.
