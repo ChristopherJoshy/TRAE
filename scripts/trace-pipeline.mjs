@@ -182,6 +182,7 @@ try {
   const checkedLines = [];
   const allScored = [];
   const pages = ordered.slice(0, maxPages);
+  const matchSp = spin(`matching page images…`);
   for (const [pi, cand] of pages.entries()) {
     const host = (() => { try { return new URL(cand.url).hostname; } catch { return cand.url; } })();
     matchSp.text = `[${pi + 1}/${pages.length}] ${host}…`;
