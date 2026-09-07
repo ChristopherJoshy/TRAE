@@ -75,8 +75,9 @@ Live Sepolia deployment (Sept 2026, chain 11155111):
 - Scripted Lens/Bing uploads are bot-walled from this network — documented probes in `scripts/*-probe.mjs`; Exa is the working search leg.
 - Local chain is ephemeral per run (restart ganache → new chain); use a persistent testnet for durable anchors.
 - Face embeddings never leave memory; similarity threshold calibrated on portrait photos, not a biometric identity claim.
-- Full list: `docs/LIMITATIONS.md`.
-
+- ganache prints no native-module warnings: its optional uWS binary has no win32/x64 build
+  for Node ≥21 (upstream archived), so TRACE loads ganache lazily and scrubs only that
+  loader notice — execution uses ganache's equivalent pure-Node path in all modes.
 ## Credits
 
 ASCII terminal preview: rendered in-repo from decoded pixels with the standard

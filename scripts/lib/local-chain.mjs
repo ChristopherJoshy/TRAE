@@ -1,7 +1,6 @@
 // Local EVM chain leg: ganache (real local Ethereum execution) + solc
 // compilation of contracts/TraceAnchor.sol + viem deployment, anchoring,
 // and re-verification. Every hash, tx, and receipt is real chain state.
-import ganache from "ganache";
 import solc from "solc";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -36,6 +35,25 @@ export function compileAnchor() {
 }
 
 export async function startLocalChain(port = 8545) {
+  // ganache's OPTIONAL native WebSocket module (uws) ships no win32/x64
+  // binary for Node ≥21 (upstream archived; max bundled ABI is 115). ganache
+  // then uses its built-in pure-Node implementation — functionally identical
+  // for local JSON-RPC, as every anchored run proves. We load ganache lazily
+  // and scrub only that known-harmless loader notice so recordings stay clean.
+  const { default: ganache } = await (async () => {
+    const orig = [console.error, console.warn, console.log];
+    const scrub = (fn) => (...a) => {
+      const s = a.map((x) => String(x)).join(" ");
+      if (s.includes("uws_") || s.includes("µWS") || s.includes("Falling back to a NodeJS implementation")) return undefined;
+      return fn(...a);
+    };
+    console.error = scrub(orig[0]); console.warn = scrub(orig[1]); console.log = scrub(orig[2]);
+    try {
+      return await import("ganache");
+    } finally {
+      [console.error, console.warn, console.log] = orig;
+    }
+  })();
   const server = ganache.server({
     chain: { chainId: CHAIN_ID },
     wallet: { mnemonic: "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat", totalAccounts: 3 },
