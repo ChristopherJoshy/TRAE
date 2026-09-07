@@ -331,6 +331,11 @@ try {
     exists: check.exists, anchored: check.anchored, events: check.eventCount,
   });
   verdict(true, Date.now() - t0, outPath);
+  if (isSepolia) {
+    console.log("  Verify this anchor yourself (no key needed):");
+    console.log(`  contract: https://sepolia.etherscan.io/address/${address}#code`);
+    console.log(`  anchor tx:  https://sepolia.etherscan.io/tx/${anchored.txHash}`);
+  }
 } catch (e) {
   failLine(e.code, e instanceof Error ? e.message : String(e));
   verdict(false, Date.now() - t0, "");
